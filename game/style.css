@@ -306,6 +306,90 @@ kbd {
 #pause-inner p { margin-top: 8px; color: #c8ccd6; }
 #pause-controls { margin-top: 18px; font-size: 12px; color: rgba(200,204,214,0.6); letter-spacing: 1px; }
 
+#damage-flash {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 4;
+  background: radial-gradient(ellipse at center, rgba(180,10,10,0.06) 40%, rgba(190,12,12,0.85) 100%);
+}
+
+#combat-panel {
+  position: absolute;
+  right: 16px;
+  bottom: 224px;
+  width: 190px;
+  text-align: right;
+}
+#health-bar {
+  height: 9px;
+  width: 100%;
+  background: rgba(8,10,16,0.75);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 5px;
+  overflow: hidden;
+}
+#health-fill { height: 100%; width: 100%; background: #6de08a; transition: width 0.12s linear; }
+#ammo-row {
+  margin-top: 6px;
+  font-family: 'Consolas', 'Menlo', monospace;
+  font-size: 22px;
+  font-weight: 700;
+  color: #f2f4f8;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.9);
+}
+#ammo.empty { color: #ff5a4a; }
+#ammo-sep, #reserve { font-size: 15px; color: rgba(220,225,235,0.65); }
+#weapon-name { margin-left: 10px; font-size: 10px; letter-spacing: 2px; color: #8ad2ff; }
+
+#menu-buttons, #pause-buttons, .screen-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 24px;
+}
+#menu-buttons button, #pause-buttons button, .screen-buttons button,
+#result-continue, #respawn-button, #settings-close { margin-top: 0; }
+button.ghost {
+  color: #ffd9a0;
+  background: rgba(255,176,84,0.08);
+  border: 1px solid rgba(255,176,84,0.5);
+  box-shadow: none;
+  font-size: 13px;
+  padding: 13px 22px;
+}
+button.ghost:hover { background: rgba(255,176,84,0.18); }
+
+.screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, rgba(8,6,18,0.86), rgba(24,8,22,0.9));
+  z-index: 12;
+}
+.screen-inner { text-align: center; max-width: 540px; padding: 32px; }
+.screen-kicker { font-size: 12px; letter-spacing: 5px; color: #ff8a4c; margin-bottom: 10px; }
+.screen-kicker.fail, .screen h2.fail { color: #ff5a4a; }
+.screen h2 { font-size: 44px; letter-spacing: 6px; color: #ffd9a0; }
+.screen p { margin-top: 12px; color: #c8ccd6; font-size: 14px; }
+#result-reward { margin-top: 14px; font-size: 34px; font-weight: 800; color: #9fe8a8; }
+#result-stats { margin-top: 10px; font-family: monospace; font-size: 12px; color: rgba(200,204,214,0.7); }
+#result-continue, #respawn-button, #settings-close {
+  margin-top: 24px; padding: 12px 34px; font-size: 14px; font-weight: 800; letter-spacing: 2px;
+  color: #1a0e08; background: linear-gradient(180deg, #ffd9a0, #ff9a4c);
+  border: none; border-radius: 6px; cursor: pointer;
+}
+.setting-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 24px; margin: 14px auto; max-width: 360px; font-size: 13px; letter-spacing: 1px; color: #d8cfc4;
+}
+.setting-row input[type=range] { flex: 1; }
+.setting-row select { background: #171c28; color: #ffd9a0; border: 1px solid rgba(255,176,84,0.4); padding: 5px 10px; }
+
 @media (max-width: 900px) {
   #game-title { font-size: 42px; }
   #hud-top-left { max-width: 240px; }

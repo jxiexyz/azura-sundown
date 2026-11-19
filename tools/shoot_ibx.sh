@@ -32,10 +32,18 @@ python3 "$IBX" exec "$CMD" | tail -1
 for row in "${SHOTS[@]}"; do
   name="${row%%$'\t'*}"; query="${row#*$'\t'}"
   echo "shot $name  $query"
-  python3 "$IBX" exec "cd $REMOTE && chromium --headless=new --no-sandbox --hide-scrollbars --run-all-compositor-stages-before-draw --window-size=1280,720 --virtual-time-budget=20000 --screenshot=$REMOTE/out/$name 'http://127.0.0.1:8123/index.html$query' 2>&1 | grep -v dbus | tail -2; ls -la $REMOTE/out/$name" | tail -2
-  python3 "$IBX" exec "chromium --headless=new --no-sandbox --virtual-time-budget=8000 --dump-dom 'http://127.0.0.1:8123/index.html$query' 2>/dev/null | grep -o '<title>[^<]*</title>' | head -1"
+  # Render in the foreground (a detached child dies with its exec) but keep each call well under the
+  # ~120 s exec drop: budget 15 s virtual time, one shot per exec, stale file removed first.
+  res=$(python3 "$IBX" exec "rm -f $REMOTE/out/$name; cd $REMOTE && chromium --headless=new --no-sandbox --hide-scrollbars --window-size=1280,720 --virtual-time-budget=15000 --screenshot=$REMOTE/out/$name 'http://127.0.0.1:8123/index.html$query' >/tmp/gt_shot_${name}.log 2>&1; [ -s $REMOTE/out/$name ] && echo \"CAPTURED $(stat -c '%s' $REMOTE/out/$name)\" || echo MISSING" 2>&1 | grep -E "CAPTURED|MISSING" | tail -1)
+  echo "  remote: $res"
+  case "$res" in
+    MISSING*|"") echo "FAIL $name — no capture"; rm -f "screenshots/$name"; continue;;
+  esac
   mkdir -p screenshots
   python3 "$IBX" get "$REMOTE/out/$name" "screenshots/$name" >/dev/null
+  if [ "${TITLE_PROBE:-0}" = "1" ]; then
+    python3 "$IBX" exec "chromium --headless=new --no-sandbox --virtual-time-budget=8000 --dump-dom 'http://127.0.0.1:8123/index.html$query' 2>/dev/null | grep -o '<title>[^<]*</title>' | head -1"
+  fi
 done
 
 echo "--- local:"

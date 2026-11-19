@@ -12,6 +12,7 @@
 <body>
 <canvas id="scene"></canvas>
 <div id="vignette"></div>
+<div id="damage-flash"></div>
 
 <div id="hud" class="hidden">
   <div id="hud-top-left">
@@ -46,6 +47,11 @@
     <div id="car-name">Vantara S9</div>
   </div>
 
+  <div id="combat-panel" class="hidden">
+    <div id="health-bar"><div id="health-fill"></div></div>
+    <div id="ammo-row"><span id="ammo">12</span><span id="ammo-sep">/</span><span id="reserve">60</span><span id="weapon-name">KESTREL 9</span></div>
+  </div>
+
   <div id="toast"></div>
 </div>
 
@@ -64,8 +70,12 @@
       <div><kbd>R</kbd> reset car</div>
       <div><kbd>ESC</kbd> pause</div>
     </div>
-    <button id="start-button">ENTER THE CITY</button>
-    <div id="start-foot">Drive the Vantara S9 · walk Port Azura · traffic, pedestrians and ABPD pursuit are live</div>
+    <div id="menu-buttons">
+      <button id="start-button">NEW GAME</button>
+      <button id="continue-button" class="hidden">CONTINUE</button>
+      <button id="settings-button" class="ghost">SETTINGS</button>
+    </div>
+    <div id="start-foot">RMB aim · LMB fire · E interact · F enter/exit · walk Port Azura · traffic, pedestrians and ABPD pursuit are live</div>
   </div>
 </div>
 
@@ -73,8 +83,55 @@
   <div id="pause-inner">
     <h2>PAUSED</h2>
     <p>Port Azura waits for you.</p>
-    <button id="resume-button">RESUME</button>
-    <div id="pause-controls">WASD / arrows drive · SPACE handbrake · F enter/exit · SHIFT sprint · R reset car</div>
+    <div id="pause-buttons">
+      <button id="resume-button">RESUME</button>
+      <button id="save-button" class="ghost">SAVE</button>
+      <button id="pause-settings-button" class="ghost">SETTINGS</button>
+      <button id="quit-button" class="ghost">QUIT TO MENU</button>
+    </div>
+    <div id="pause-controls">WASD / arrows drive · SPACE handbrake / jump · F enter/exit · RMB aim · LMB fire · E interact · SHIFT sprint · R reset car</div>
+  </div>
+</div>
+
+<div id="result-screen" class="screen hidden">
+  <div class="screen-inner">
+    <div class="screen-kicker">CONTRACT FULFILLED</div>
+    <h2 id="result-title">MISSION COMPLETE</h2>
+    <div id="result-reward">+$1,200</div>
+    <div id="result-stats"></div>
+    <button id="result-continue">CONTINUE</button>
+  </div>
+</div>
+
+<div id="fail-screen" class="screen hidden">
+  <div class="screen-inner">
+    <div class="screen-kicker fail">JOB FAILED</div>
+    <h2 id="fail-title" class="fail">BUSTED</h2>
+    <div class="screen-buttons">
+      <button id="fail-retry">RETRY</button>
+      <button id="fail-free" class="ghost">FREE ROAM</button>
+    </div>
+  </div>
+</div>
+
+<div id="wasted-screen" class="screen hidden">
+  <div class="screen-inner">
+    <div class="screen-kicker fail">MEDICAL EMERGENCY</div>
+    <h2 class="fail">WASTED</h2>
+    <p>You lost $200. Riko is being taken to the safehouse.</p>
+    <button id="respawn-button">RESPAWN</button>
+  </div>
+</div>
+
+<div id="settings-screen" class="screen hidden">
+  <div class="screen-inner">
+    <div class="screen-kicker">SYSTEM</div>
+    <h2>SETTINGS</h2>
+    <label class="setting-row">MASTER VOLUME <input id="volume-slider" type="range" min="0" max="100" value="50"></label>
+    <label class="setting-row">CAMERA SHAKE <input id="shake-toggle" type="checkbox" checked></label>
+    <label class="setting-row">INVERT AIM Y <input id="invert-toggle" type="checkbox"></label>
+    <label class="setting-row">QUALITY <select id="quality-select"><option value="high">HIGH</option><option value="low">LOW</option></select></label>
+    <button id="settings-close">BACK</button>
   </div>
 </div>
 

@@ -70,3 +70,53 @@ export const CAMERA = {
 export const STEP = 1 / 60;
 export const MAX_FRAME = 0.25;
 export const SAVE_KEY = 'azura-sundown-save-v1';
+export const SAVE_VERSION = 1;
+
+export const SAFEHOUSE = { x: -270, z: -380 };
+
+export const COMBAT = {
+  dmg: 25,
+  mag: 12,
+  reserve: 60,
+  rate: 0.18,
+  reload: 1.1,
+  range: 90,
+  spread: 0.015,
+  maxHealth: 100,
+  regenDelay: 6,
+  regenRate: 5,
+  flashTime: 0.06,
+  tracerTime: 0.05,
+  wantedWindow: 20,
+  hostileHealth: 60,
+  hostileDmg: 8,
+  hostileRate: 1.4,
+  hostileRange: 55,
+  hostileNear: 8,
+  hostileFar: 14,
+  hostilFleeHealth: 25,
+  damageFlashDecay: 3.2,
+  vehicleHealth: 100,
+  vehicleDmgScale: 0.55,
+};
+
+export const AUDIO = {
+  master: 0.5,
+  maxVoices: 24,
+  engineBase: 82,
+  screechSlip: 3,
+  sirenA: 660,
+  sirenB: 880,
+  sirenCycle: 0.55,
+  heliLfo: 14,
+  sirenRange: 150,
+  heliRange: 220,
+};
+
+export const MISSION_TUNING = {
+  escapeSeconds: 10,
+  spottedFailSeconds: 6,
+  harborTimeLimit: 150,
+  bustedSeconds: 1.5,
+  bustedRange: 2.5,
+};

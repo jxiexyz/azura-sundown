@@ -81,6 +81,7 @@ export function createTraffic(scene, world, seed = 1) {
 
   function update(dt, focus) {
     for (const m of movers) {
+      if (m.stolen) continue;
       if (Math.hypot(m.vehicle.x - focus.x, m.vehicle.z - focus.z) > ACTIVE_RANGE) continue;
       let target = m.cruise;
       if (Math.hypot(m.vehicle.x - focus.x, m.vehicle.z - focus.z) < 10) target = Math.min(target, 2);
@@ -115,5 +116,38 @@ export function createTraffic(scene, world, seed = 1) {
     return [...movers, ...parked];
   }
 
-  return { movers, parked, update, list };
+  function nearestDrivable(x, z, maxDist = 4) {
+    let best = null;
+    let bestD = maxDist;
+    for (const entry of list()) {
+      if (entry.stolen) continue;
+      const d = Math.hypot(entry.vehicle.x - x, entry.vehicle.z - z);
+      if (d < bestD) { bestD = d; best = entry; }
+    }
+    return best ? { vehicle: best.vehicle, mesh: best.mesh, entry: best } : null;
+  }
+
+  function serialize() {
+    return movers.map((m) => ({ roadIndex: world.roads.indexOf(m.road), dir: m.dir, s: m.s, speed: m.speed }));
+  }
+
+  function load(data) {
+    if (!Array.isArray(data)) return;
+    data.forEach((d, i) => {
+      const m = movers[i];
+      if (!m) return;
+      m.road = world.roads[d.roadIndex] ?? m.road;
+      m.dir = d.dir ?? m.dir;
+      m.s = d.s ?? m.s;
+      m.speed = d.speed ?? 0;
+      m.stops = intersectionStops(m.road, world.roads);
+      const pose = lanePose(m.road, m.dir, m.s);
+      m.vehicle.x = pose.x;
+      m.vehicle.z = pose.z;
+      m.vehicle.heading = pose.heading;
+      m.vehicle.syncMesh(0);
+    });
+  }
+
+  return { movers, parked, update, list, nearestDrivable, serialize, load };
 }

@@ -131,11 +131,36 @@ export function createPedestrians(scene, world, seed = 1) {
     }
   }
 
+  function hitTest(x, z, radius) {
+    let best = null;
+    let bestD = radius;
+    for (const p of peds) {
+      const d = Math.hypot(p.x - x, p.z - z);
+      if (d < bestD) { bestD = d; best = p; }
+    }
+    return best;
+  }
+
+  function serialize() {
+    return peds.map((p) => ({ s: p.s, mode: p.mode }));
+  }
+
+  function load(data) {
+    if (!Array.isArray(data)) return;
+    data.forEach((d, i) => {
+      const p = peds[i];
+      if (!p) return;
+      p.s = d.s ?? p.s;
+      p.mode = d.mode === 'panic' ? 'walk' : 'walk';
+      sidewalkPos(p);
+    });
+  }
+
   for (const p of peds) {
     sidewalkPos(p);
     p.group.position.set(p.x, heightAt(p.x, p.z) + 0.09, p.z);
     p.group.rotation.y = p.heading;
   }
 
-  return { peds, update, panic };
+  return { peds, update, panic, hitTest, serialize, load };
 }

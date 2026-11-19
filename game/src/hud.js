@@ -21,6 +21,15 @@ export function createHud() {
     policePanel: document.getElementById('police-panel'),
     policeHeader: document.getElementById('police-header'),
     policeUnits: document.getElementById('police-units'),
+    damageFlash: document.getElementById('damage-flash'),
+    combatPanel: document.getElementById('combat-panel'),
+    healthFill: document.getElementById('health-fill'),
+    ammo: document.getElementById('ammo'),
+    reserve: document.getElementById('reserve'),
+    result: document.getElementById('result-screen'),
+    fail: document.getElementById('fail-screen'),
+    wasted: document.getElementById('wasted-screen'),
+    settings: document.getElementById('settings-screen'),
   };
   const ctx = el.speedoCanvas.getContext('2d');
   const stars = [...el.wanted.querySelectorAll('.star')];
@@ -75,9 +84,38 @@ export function createHud() {
   }
 
   function showScreen(name) {
-    el.start.classList.toggle('hidden', name !== 'start');
-    el.pause.classList.toggle('hidden', name !== 'pause');
+    const screens = {
+      start: el.start,
+      pause: el.pause,
+      'mission-complete': el.result,
+      failed: el.fail,
+      wasted: el.wasted,
+      settings: el.settings,
+    };
+    for (const key of Object.keys(screens)) {
+      if (screens[key]) screens[key].classList.toggle('hidden', key !== name);
+    }
     el.hud.classList.toggle('hidden', name === 'start');
+  }
+
+  function setHealth(value) {
+    const pct = clamp(value, 0, 100);
+    el.healthFill.style.width = pct + '%';
+    el.healthFill.style.background = pct > 55 ? '#6de08a' : pct > 25 ? '#ffcf4d' : '#ff5a4a';
+  }
+
+  function setAmmo(mag, reserve) {
+    el.ammo.textContent = String(mag);
+    el.reserve.textContent = String(reserve);
+    el.ammo.classList.toggle('empty', mag <= 0);
+  }
+
+  function setDamageFlash(value) {
+    el.damageFlash.style.opacity = String(clamp(value, 0, 1) * 0.62);
+  }
+
+  function setCombatVisible(visible) {
+    el.combatPanel.classList.toggle('hidden', !visible);
   }
 
   function drawSpeedo(kmh, rpm, gear, snap = false) {
@@ -176,5 +214,9 @@ export function createHud() {
   document.getElementById('game-title').textContent = GAME_TITLE;
   document.title = GAME_TITLE + ' — Port Azura';
 
-  return { setCash, setWanted, setDistrict, setMission, toast, clearToast, setPoliceUnits, setDriving, showScreen, drawSpeedo, update, getCash: () => cash };
+  return {
+    setCash, setWanted, setDistrict, setMission, toast, clearToast, setPoliceUnits, setDriving,
+    showScreen, drawSpeedo, update, setHealth, setAmmo, setDamageFlash, setCombatVisible,
+    getCash: () => cash,
+  };
 }

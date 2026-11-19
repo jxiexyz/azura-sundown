@@ -88,6 +88,8 @@ export function createPolice(scene, world, seed = 1) {
   let heliAngle = rand() * Math.PI * 2;
   let searchTimer = 0;
   let spotted = false;
+  let onFoot = false;
+  let footBustedTimer = 0;
   const lastKnown = { x: 0, z: 0 };
 
   function spawnUnit(spawn, status) {
@@ -157,6 +159,13 @@ export function createPolice(scene, world, seed = 1) {
   }
 
   function driveUnit(u, dt, target) {
+    if (u.disabled) {
+      u.vehicle.vx = 0;
+      u.vehicle.vz = 0;
+      u.vehicle.forwardSpeed = 0;
+      u.vehicle.syncMesh(dt);
+      return Math.hypot(target.x - u.vehicle.x, target.z - u.vehicle.z);
+    }
     const v = u.vehicle;
     const fx = Math.sin(target.heading);
     const fz = Math.cos(target.heading);
@@ -219,6 +228,16 @@ export function createPolice(scene, world, seed = 1) {
       }
       const dist = driveUnit(u, dt, target);
       if (dist < SPOTTED_RANGE) spotted = true;
+    }
+    if (onFoot && target) {
+      let close = false;
+      for (const u of units) {
+        if (u.roadblock || u.disabled) continue;
+        if (Math.hypot(u.vehicle.x - target.x, u.vehicle.z - target.z) < 2.5 && (target.speed ?? 0) < 1) { close = true; break; }
+      }
+      footBustedTimer = close ? footBustedTimer + dt : 0;
+    } else {
+      footBustedTimer = 0;
     }
     if (heli) {
       heliAngle += dt * 0.32;
@@ -285,6 +304,38 @@ export function createPolice(scene, world, seed = 1) {
     lastKnown.z = z;
   }
 
+  function setOnFoot(value) {
+    onFoot = !!value;
+    footBustedTimer = 0;
+  }
+
+  function damageUnit(unit, amount) {
+    if (!unit || unit.disabled) return;
+    unit.disabled = true;
+    unit.roadblock = true;
+    unit.status = 'SEARCHING';
+    unit.vehicle.vx = 0;
+    unit.vehicle.vz = 0;
+    unit.vehicle.forwardSpeed = 0;
+    unit.vehicle.impact = Math.min(1, (unit.vehicle.impact ?? 0) + amount / 120);
+    unit.vehicle.syncMesh(0);
+  }
+
+  function serialize() {
+    return {
+      level,
+      lastKnown: { ...lastKnown },
+      units: units.map((u) => ({ x: u.vehicle.x, z: u.vehicle.z, heading: u.vehicle.heading, status: u.status, roadblock: u.roadblock })),
+    };
+  }
+
+  function load(data) {
+    if (!data) return;
+    setLevel(data.level ?? 0, { x: lastKnown.x, z: lastKnown.z, heading: 0 });
+    if (data.lastKnown) setLastKnown(data.lastKnown.x, data.lastKnown.z);
+    (data.units ?? []).forEach((u, i) => placeUnit(i, u.x, u.z, u.heading, 0, u.status));
+  }
+
   return {
     units,
     setLevel,
@@ -299,5 +350,10 @@ export function createPolice(scene, world, seed = 1) {
     setLastKnown,
     getLevel: () => level,
     isSpotted: () => spotted,
+    busted: () => onFoot && footBustedTimer >= 1.5,
+    setOnFoot,
+    damageUnit,
+    serialize,
+    load,
   };
 }

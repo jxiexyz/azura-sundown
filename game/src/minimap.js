@@ -107,6 +107,33 @@ export function createMinimap(world) {
       }
     }
 
+    if (extras.hostiles) {
+      for (const h of extras.hostiles) {
+        const [sx, sy] = tx(h.x, h.z);
+        if (sx < -6 || sy < -6 || sx > SIZE + 6 || sy > SIZE + 6) continue;
+        ctx.beginPath();
+        ctx.arc(sx, sy, 3.2, 0, Math.PI * 2);
+        ctx.fillStyle = '#ff3a7a';
+        ctx.fill();
+        ctx.strokeStyle = '#160810';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    }
+
+    if (extras.markers) {
+      for (const m of extras.markers) {
+        const [mx, my] = tx(m.x, m.z);
+        const cx = Math.max(10, Math.min(SIZE - 10, mx));
+        const cy = Math.max(10, Math.min(SIZE - 10, my));
+        ctx.beginPath();
+        ctx.arc(cx, cy, 5.5, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255,176,84,0.75)';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+      }
+    }
+
     if (extras.heli) {
       const [sx, sy] = tx(extras.heli.x, extras.heli.z);
       ctx.beginPath();

@@ -15,12 +15,21 @@ const KEYMAP = {
   Escape: 'pause',
   Enter: 'confirm',
   KeyH: 'horn',
+  KeyQ: 'aim',
+  KeyZ: 'fire',
+  KeyE: 'interact',
+  KeyV: 'reload',
+  KeyTab: 'map',
 };
+
+const MOUSEMAP = { 0: 'fire', 2: 'aim' };
 
 export function createInput() {
   const held = new Set();
   const pressed = new Set();
-  const prevent = new Set(['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
+  const prevent = new Set(['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab']);
+  let lookX = 0;
+  let lookY = 0;
 
   window.addEventListener('keydown', (e) => {
     const action = KEYMAP[e.code];
@@ -33,7 +42,22 @@ export function createInput() {
     const action = KEYMAP[e.code];
     if (action) held.delete(action);
   });
-  window.addEventListener('blur', () => held.clear());
+  window.addEventListener('mousedown', (e) => {
+    const action = MOUSEMAP[e.button];
+    if (!action) return;
+    if (!e.repeat) pressed.add(action);
+    held.add(action);
+  });
+  window.addEventListener('mouseup', (e) => {
+    const action = MOUSEMAP[e.button];
+    if (action) held.delete(action);
+  });
+  window.addEventListener('mousemove', (e) => {
+    lookX += e.movementX || 0;
+    lookY += e.movementY || 0;
+  });
+  window.addEventListener('contextmenu', (e) => e.preventDefault());
+  window.addEventListener('blur', () => { held.clear(); lookX = 0; lookY = 0; });
 
   return {
     down: (action) => held.has(action),
@@ -42,8 +66,13 @@ export function createInput() {
       pressed.delete(action);
       return had;
     },
+    look() {
+      return { dx: lookX, dy: lookY };
+    },
     endFrame() {
       pressed.clear();
+      lookX = 0;
+      lookY = 0;
     },
     throttle() {
       return (held.has('up') ? 1 : 0) - (held.has('down') ? 1 : 0);
