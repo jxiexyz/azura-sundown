@@ -91,6 +91,9 @@ body.shot *, body.shot *::before, body.shot *::after {
   top: 16px;
   right: 16px;
   text-align: right;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: rgba(8, 10, 16, 0.42);
 }
 
 #cash {

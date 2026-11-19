@@ -173,8 +173,9 @@ export function createMissions(deps) {
     hud.setMission(active.def.title + ' — ' + kind, 'Job failed. Retry or return to free roam.', 'FAILED');
     deps.police?.setLevel?.(0, deps.target?.() ?? deps.player);
     deps.audio?.play?.('fail');
-    if (deps.save?.showResult) deps.save.showResult(kind === 'BUSTED' ? 'failed' : 'wasted', { title: kind });
-    else hud.showScreen(kind === 'BUSTED' ? 'failed' : 'wasted');
+    const screen = kind === 'WASTED' ? 'wasted' : 'failed';
+    if (deps.save?.showResult) deps.save.showResult(screen, { title: kind });
+    else hud.showScreen(screen);
     deps.onFail?.(active.id, kind);
   }
 
@@ -258,7 +259,7 @@ export function createMissions(deps) {
     const def = active.def;
     if (def.id === 'shipment') return false;
     if (deps.police?.busted?.()) { fail('BUSTED'); return true; }
-    if (deps.getMode?.() === 'car' && deps.combat?.isVehicleDestroyed?.(deps.car)) {
+    if (deps.getMode?.() === 'car' && deps.combat?.isVehicleDestroyed?.(deps.target?.() ?? deps.car)) {
       fail('WASTED');
       return true;
     }

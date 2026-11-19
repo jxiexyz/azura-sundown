@@ -1,5 +1,6 @@
 import THREE from 'three';
 import { STEP, MAX_FRAME, districtAt, PLAYER_NAME, START_CASH } from './config.js';
+import { heightAt } from './world.js';
 import { createInput } from './input.js';
 import { createWorld } from './world.js';
 import { createVehicleMesh, Vehicle } from './vehicle.js';
@@ -134,6 +135,12 @@ hud.setDistrict(lastDistrict.name);
 hud.setDriving(true, carMesh.name);
 hud.showScreen('start');
 hud.setCash(START_CASH);
+if (!isShot && save.hasSave()) {
+  save.load();
+  const bt = target();
+  lastDistrict = districtAt(bt.x, bt.z);
+  hud.setDistrict(lastDistrict.name);
+}
 
 const unlockAudio = () => {
   audio.unlock();
@@ -334,7 +341,7 @@ function renderFrame(dt) {
     chase.update(dt, t, world.colliders);
   }
   hud.drawSpeedo(Math.abs(activeVehicle.forwardSpeed) * 3.6, activeVehicle.rpm, activeVehicle.gear);
-  hud.setCombatVisible(mode === 'foot' && !isShot);
+  hud.setCombatVisible(mode === 'foot');
   const extras = minimapExtras();
   minimap.draw(t, missions.current(), elapsed, extras);
   speedOverlay.update(mode === 'car' ? activeVehicle.speed : 0, activeVehicle.impact);
@@ -387,35 +394,49 @@ const SHOT_TIME = 9.0;
 const SHOT_POSES = {
   chase: {
     mode: 'car',
+    mission: 'shipment',
     spawn: { x: -330, z: -60, heading: 0 },
     cruise: 31,
     wanted: 4,
     units: [
-      { dx: -5.5, dz: -16, status: 'PURSUIT' },
-      { dx: 5.5, dz: -28, status: 'PURSUIT' },
-      { dx: 7.5, dz: 2, status: 'RAMMING' },
+      { dx: -5.5, dz: -2, status: 'PURSUIT' },
+      { dx: 5.5, dz: 0, status: 'PURSUIT' },
+      { dx: 7.5, dz: 12, status: 'RAMMING' },
       { dx: 0, dz: 120, status: 'ROADBLOCK' },
     ],
     heli: { dx: -16, dy: 24, dz: 95 },
   },
   onfoot: {
     mode: 'foot',
+    mission: null,
     spawn: { x: -80.7, z: -150, heading: 0 },
     carPark: { x: -84.2, z: -158, heading: 0 },
     cruise: 0,
     wanted: 0,
     units: [],
     heli: null,
+    peds: [
+      { road: 7, side: 1, s: -122, dir: -1 },
+      { road: 7, side: 1, s: -112, dir: 1 },
+      { road: 7, side: -1, s: -132, dir: 1 },
+      { road: 7, side: -1, s: -120, dir: -1 },
+      { road: 2, side: 1, s: -72, dir: 1 },
+    ],
+    traffic: [
+      { road: 7, dir: -1, s: -98, speed: 9 },
+      { road: 2, dir: -1, s: -60, speed: 8 },
+    ],
   },
   pursuit: {
     mode: 'car',
-    spawn: { x: 10, z: -120, heading: Math.PI / 2 },
+    mission: 'chase',
+    spawn: { x: 10, z: -120, heading: -Math.PI / 2 },
     cruise: 30,
     wanted: 5,
     units: [
-      { dx: -4.5, dz: -15, status: 'PURSUIT' },
-      { dx: 4.5, dz: -26, status: 'PURSUIT' },
-      { dx: 6, dz: -38, status: 'PURSUIT' },
+      { dx: -4.5, dz: -2, status: 'PURSUIT' },
+      { dx: 4.5, dz: 1, status: 'PURSUIT' },
+      { dx: 6, dz: 14, status: 'RAMMING' },
       { dx: -4, dz: 36, status: 'INTERCEPT' },
       { dx: 0, dz: 100, status: 'ROADBLOCK' },
     ],
@@ -423,10 +444,16 @@ const SHOT_POSES = {
   },
   harbor: {
     mode: 'car',
-    spawn: { x: -446, z: 280, heading: -Math.PI / 2 },
+    mission: 'harbor',
+    spawn: { x: -430, z: 284, heading: -Math.PI / 2 },
     cruise: 8,
-    wanted: 0,
-    units: [],
+    wanted: 3,
+    cam: { distance: 9.5, height: 4.6, fov: 70 },
+    units: [
+      { dx: -5, dz: -1, status: 'PURSUIT' },
+      { dx: 5, dz: 3, status: 'PURSUIT' },
+      { dx: 0, dz: 60, status: 'ROADBLOCK' },
+    ],
     heli: null,
   },
 };
@@ -436,6 +463,7 @@ function stagePose(pose, t) {
   const fz = Math.cos(t.heading);
   const rx = Math.cos(t.heading);
   const rz = -Math.sin(t.heading);
+  police.setOnFoot(pose.mode === 'foot');
   police.setLevel(pose.wanted, t);
   police.setLastKnown(t.x, t.z);
   pose.units.forEach((u, i) => {
@@ -491,11 +519,55 @@ function setupShot(name) {
     }
   }
   const t = target();
+  if (pose.peds) {
+    for (const spec of pose.peds) {
+      const p = peds.peds.find((q) => q.road === world.roads[spec.road] && q.side === spec.side && !q.staged);
+      if (!p) continue;
+      p.staged = true;
+      p.s = spec.s;
+      p.dir = spec.dir;
+      p.mode = 'walk';
+      p.panicT = 0;
+      const road = world.roads[spec.road];
+      const off = spec.side * (road.w / 2 + 2.3);
+      p.x = road.axis === 'z' ? road.at + off : spec.s;
+      p.z = road.axis === 'z' ? spec.s : road.at + off;
+      p.heading = road.axis === 'z' ? (spec.dir > 0 ? 0 : Math.PI) : (spec.dir > 0 ? Math.PI / 2 : -Math.PI / 2);
+      p.group.position.set(p.x, heightAt(p.x, p.z) + 0.09, p.z);
+      p.group.rotation.y = p.heading;
+    }
+    peds.update(STEP, SHOT_TIME, { x: t.x, z: t.z, speed: t.speed });
+  }
+  if (pose.traffic) {
+    for (const spec of pose.traffic) {
+      const m = traffic.movers.find((q) => !q.staged && !q.stolen);
+      if (!m) continue;
+      m.staged = true;
+      m.road = world.roads[spec.road];
+      m.dir = spec.dir;
+      m.s = spec.s;
+      m.speed = spec.speed;
+      const road = m.road;
+      const lane = road.w / 4;
+      const v = m.vehicle;
+      v.x = road.axis === 'z' ? road.at + spec.dir * lane : spec.s;
+      v.z = road.axis === 'z' ? spec.s : road.at - spec.dir * lane;
+      v.heading = road.axis === 'z' ? (spec.dir > 0 ? 0 : Math.PI) : (spec.dir > 0 ? Math.PI / 2 : -Math.PI / 2);
+      v.forwardSpeed = spec.speed;
+      v.speed = spec.speed;
+      v.syncMesh(0);
+    }
+    traffic.update(STEP, t);
+  }
+  if (pose.mission) missions.start(pose.mission);
   stagePose(pose, t);
   elapsed = SHOT_TIME;
   effects.update(STEP);
   world.update(0, SHOT_TIME, { x: t.x, y: t.groundY(), z: t.z });
   chase.setOnFoot(mode === 'foot');
+  chase.distOverride = pose.cam?.distance ?? null;
+  chase.heightOverride = pose.cam?.height ?? null;
+  chase.fovOverride = pose.cam?.fov ?? null;
   chase.initialized = false;
   chase.update(STEP, t, world.colliders);
   hud.setDistrict(districtAt(t.x, t.z).name);
@@ -503,10 +575,7 @@ function setupShot(name) {
   hud.setWanted(pose.wanted);
   hud.setPoliceUnits(police.info(t));
   const stop = missions.current();
-  if (stop) {
-    const d = Math.round(Math.hypot(t.x - stop.x, t.z - stop.z));
-    hud.setMission(stop.title, `${stop.objective} — ${d} m`, 'IN PROGRESS');
-  }
+  hud.setCombatVisible(mode === 'foot');
   hud.drawSpeedo(Math.abs(car.forwardSpeed) * 3.6, car.rpm, car.gear, true);
   minimap.draw(t, stop, SHOT_TIME, minimapExtras());
   speedOverlay.update(mode === 'car' ? car.speed : 0, 0);

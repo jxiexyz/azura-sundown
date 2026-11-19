@@ -17,6 +17,9 @@ export class ChaseCamera {
     this.aimPitch = 0;
     this.lastHeading = 0;
     this.shakeEnabled = true;
+    this.distOverride = null;
+    this.heightOverride = null;
+    this.fovOverride = null;
   }
 
   setOnFoot(onFoot) {
@@ -57,13 +60,14 @@ export class ChaseCamera {
     const rx = Math.cos(yaw);
     const rz = -Math.sin(yaw);
     const speed = car.speed;
-    const baseDist = aiming ? 2.6 : this.onFoot ? 5.2 : CAMERA.distance;
-    const baseHeight = aiming ? 1.9 : this.onFoot ? 2.3 : CAMERA.height;
+    const baseDist = aiming ? 2.6 : this.onFoot ? 5.2 : (this.distOverride ?? CAMERA.distance);
+    const baseHeight = aiming ? 1.9 : this.onFoot ? 2.3 : (this.heightOverride ?? CAMERA.height);
     const rightOff = aiming ? 0.5 : 0;
     const lookAhead = aiming ? 12 : this.onFoot ? 3.2 : CAMERA.lookAhead;
     const dist = baseDist + speed * (this.onFoot ? 0.02 : CAMERA.distanceSpeedGain);
     const height = baseHeight + speed * (this.onFoot ? 0.005 : CAMERA.heightSpeedGain);
     const carY = car.groundY();
+    const fov = (aiming ? 50 : this.onFoot ? 58 : (this.fovOverride ?? CAMERA.fovBase)) + speed * (this.onFoot ? 0.05 : CAMERA.fovSpeedGain);
 
     let desiredX = car.x - fx * dist + rx * rightOff;
     let desiredZ = car.z - fz * dist + rz * rightOff;
@@ -82,6 +86,8 @@ export class ChaseCamera {
     if (!this.initialized) {
       this.pos.set(desiredX, desiredY, desiredZ);
       this.look.set(car.x, carY + 1.2, car.z);
+      this.camera.fov = fov;
+      this.camera.updateProjectionMatrix();
       this.initialized = true;
     }
     const lag = CAMERA.lag + speed * 0.02;
@@ -105,7 +111,6 @@ export class ChaseCamera {
 
     this.camera.position.set(this.pos.x + ox, this.pos.y + oy, this.pos.z + oz);
     this.camera.lookAt(this.look.x + ox * 0.4, this.look.y + oy * 0.4, this.look.z);
-    const fov = (aiming ? 50 : this.onFoot ? 58 : CAMERA.fovBase) + speed * (this.onFoot ? 0.05 : CAMERA.fovSpeedGain);
     if (Math.abs(this.camera.fov - fov) > 0.05) {
       this.camera.fov = damp(this.camera.fov, fov, 4, dt);
       this.camera.updateProjectionMatrix();

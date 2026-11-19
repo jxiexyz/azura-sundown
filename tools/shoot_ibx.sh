@@ -16,8 +16,9 @@ STAMP=$(date +%s)
 
 mapfile -t SHOTS < <(node -e '
 const s=require("./shots.json");
-for (const x of s) console.log(x.name+"\t"+x.query);
-')
+const want=process.argv.slice(1).filter(a=>!a.startsWith("--"));
+for (const x of s) if (!want.length || want.includes(x.name)) console.log(x.name+"\t"+x.query);
+' "$@")
 [ ${#SHOTS[@]} -gt 0 ] || { echo "shots.json is empty"; exit 1; }
 
 tar czf "/tmp/gt_game_$STAMP.tgz" game
@@ -34,8 +35,13 @@ for row in "${SHOTS[@]}"; do
   echo "shot $name  $query"
   # Render in the foreground (a detached child dies with its exec) but keep each call well under the
   # ~120 s exec drop: budget 15 s virtual time, one shot per exec, stale file removed first.
-  res=$(python3 "$IBX" exec "rm -f $REMOTE/out/$name; cd $REMOTE && chromium --headless=new --no-sandbox --hide-scrollbars --window-size=1280,720 --virtual-time-budget=15000 --screenshot=$REMOTE/out/$name 'http://127.0.0.1:8123/index.html$query' >/tmp/gt_shot_${name}.log 2>&1; [ -s $REMOTE/out/$name ] && echo \"CAPTURED $(stat -c '%s' $REMOTE/out/$name)\" || echo MISSING" 2>&1 | grep -E "CAPTURED|MISSING" | tail -1)
-  echo "  remote: $res"
+  res=""
+  for attempt in 1 2; do
+    res=$(python3 "$IBX" exec "rm -f $REMOTE/out/$name; cd $REMOTE && chromium --headless=new --no-sandbox --hide-scrollbars --window-size=1280,720 --virtual-time-budget=1500 --screenshot=$REMOTE/out/$name 'http://127.0.0.1:8123/index.html$query' >/tmp/gt_shot_${name}.log 2>&1; [ -s $REMOTE/out/$name ] && echo \"CAPTURED $(stat -c '%s' $REMOTE/out/$name)\" || echo MISSING" 2>&1 | grep -E "CAPTURED|MISSING" | tail -1)
+    echo "  remote: $res"
+    case "$res" in CAPTURED*) break;; esac
+    echo "  retry $name (attempt $attempt dropped)"
+  done
   case "$res" in
     MISSING*|"") echo "FAIL $name — no capture"; rm -f "screenshots/$name"; continue;;
   esac
