@@ -28,6 +28,11 @@ html, body {
 
 .hidden { display: none !important; }
 
+body.shot *, body.shot *::before, body.shot *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
 #hud { position: fixed; inset: 0; pointer-events: none; }
 
 .panel {
@@ -131,6 +136,22 @@ html, body {
   color: #7fb2ff;
 }
 #police-units { font-size: 11px; font-family: monospace; margin-top: 4px; color: #cdd6e4; }
+.pu-row {
+  display: grid;
+  grid-template-columns: 62px 52px 1fr;
+  gap: 4px;
+  padding: 2.5px 0;
+  border-top: 1px solid rgba(127, 178, 255, 0.12);
+  align-items: baseline;
+}
+.pu-id { color: #9fc2ff; font-weight: 700; }
+.pu-dist { color: #cdd6e4; text-align: right; }
+.pu-st { font-weight: 700; letter-spacing: 0.5px; text-align: right; }
+.st-pursuit { color: #ff6a5a; }
+.st-intercept { color: #ffb054; }
+.st-roadblock { color: #ffcf4d; }
+.st-searching { color: #7fb2ff; }
+.st-ramming { color: #ff4d8d; }
 
 #hud-bottom-left {
   position: absolute;

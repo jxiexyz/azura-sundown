@@ -1,6 +1,6 @@
 import THREE from 'three';
-import { CAR, WORLD, PLAYER_CAR_NAME } from './config.js';
-import { clamp, damp } from './utils.js';
+import { CAR, WORLD, PLAYER_CAR_NAME, POLICE_SHORT } from './config.js';
+import { clamp, damp, canvasTexture } from './utils.js';
 import { heightAt } from './world.js';
 
 function bodyGeometry() {
@@ -57,14 +57,16 @@ function buildWheel() {
   return group;
 }
 
-export function createVehicleMesh() {
+export function createVehicleMesh(opts = {}) {
   const root = new THREE.Group();
   const body = new THREE.Group();
   root.add(body);
+  if (opts.body === 'suv') root.scale.set(1.05, 1.2, 1.04);
+  else if (opts.body === 'sedan') root.scale.set(0.98, 1.08, 0.97);
 
   const paint = new THREE.MeshPhysicalMaterial({
-    color: 0x2468e8,
-    roughness: 0.3,
+    color: opts.paint ?? 0x2468e8,
+    roughness: opts.police ? 0.4 : 0.3,
     metalness: 0.45,
     clearcoat: 1.0,
     clearcoatRoughness: 0.12,
@@ -101,6 +103,53 @@ export function createVehicleMesh() {
   const spoiler = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.07, 0.42), trim);
   spoiler.position.set(0, 1.0, -2.05);
   body.add(spoiler);
+
+  let sirenRedMat = null;
+  let sirenBlueMat = null;
+  let sirenGlowRedMat = null;
+  let sirenGlowBlueMat = null;
+  if (opts.police) {
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(1.34, 0.12, 0.36), trim);
+    bar.position.set(0, 1.31, -0.12);
+    body.add(bar);
+    sirenRedMat = new THREE.MeshStandardMaterial({ color: 0x440000, emissive: 0xff2222, emissiveIntensity: 2 });
+    sirenBlueMat = new THREE.MeshStandardMaterial({ color: 0x000844, emissive: 0x2255ff, emissiveIntensity: 2 });
+    const lensGeo = new THREE.BoxGeometry(0.52, 0.17, 0.32);
+    const lensRed = new THREE.Mesh(lensGeo, sirenRedMat);
+    lensRed.position.set(-0.33, 1.42, -0.12);
+    body.add(lensRed);
+    const lensBlue = new THREE.Mesh(lensGeo, sirenBlueMat);
+    lensBlue.position.set(0.33, 1.42, -0.12);
+    body.add(lensBlue);
+    const decalTex = canvasTexture(128, 64, (ctx, w, h) => {
+      ctx.fillStyle = '#16203a';
+      ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = '#e8ecf4';
+      ctx.font = 'bold 30px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(POLICE_SHORT, w / 2, 42);
+      ctx.fillStyle = '#ffb054';
+      ctx.fillRect(8, 50, w - 16, 5);
+    });
+    const decalMat = new THREE.MeshStandardMaterial({ map: decalTex, roughness: 0.5 });
+    const decalGeo = new THREE.PlaneGeometry(1.15, 0.5);
+    for (const side of [-1, 1]) {
+      const decal = new THREE.Mesh(decalGeo, decalMat);
+      decal.position.set(side * 1.0, 0.56, 0.15);
+      decal.rotation.y = side * Math.PI / 2;
+      body.add(decal);
+    }
+    const glowGeo = new THREE.PlaneGeometry(3.4, 6.2);
+    glowGeo.rotateX(-Math.PI / 2);
+    sirenGlowRedMat = new THREE.MeshBasicMaterial({ color: 0xff2222, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
+    sirenGlowBlueMat = new THREE.MeshBasicMaterial({ color: 0x2255ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
+    const glowRed = new THREE.Mesh(glowGeo, sirenGlowRedMat);
+    glowRed.position.set(-1.5, 0.06, 0);
+    root.add(glowRed);
+    const glowBlue = new THREE.Mesh(glowGeo, sirenGlowBlueMat);
+    glowBlue.position.set(1.5, 0.06, 0);
+    root.add(glowBlue);
+  }
   for (const side of [-1, 1]) {
     const strut = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.2, 0.1), trim);
     strut.position.set(side * 0.7, 0.88, -2.05);
@@ -168,18 +217,24 @@ export function createVehicleMesh() {
   root.add(shadow);
 
   const headlights = [];
-  for (const side of [-1, 1]) {
-    const spot = new THREE.SpotLight(0xffd9a0, 60, 55, 0.42, 0.5, 1.4);
-    spot.position.set(side * 0.62, 0.55, 2.2);
-    const target = new THREE.Object3D();
-    target.position.set(side * 0.9, 0, 22);
-    root.add(target);
-    spot.target = target;
-    root.add(spot);
-    headlights.push(spot);
+  if (opts.spotlights !== false) {
+    for (const side of [-1, 1]) {
+      const spot = new THREE.SpotLight(0xffd9a0, 60, 55, 0.42, 0.5, 1.4);
+      spot.position.set(side * 0.62, 0.55, 2.2);
+      const target = new THREE.Object3D();
+      target.position.set(side * 0.9, 0, 22);
+      root.add(target);
+      spot.target = target;
+      root.add(spot);
+      headlights.push(spot);
+    }
   }
 
-  return { root, body, wheels, steerGroups, headMat, tailMat, reverseMat, tailGlowMat, headlights, name: PLAYER_CAR_NAME };
+  return {
+    root, body, wheels, steerGroups, headMat, tailMat, reverseMat, tailGlowMat, headlights,
+    sirenRedMat, sirenBlueMat, sirenGlowRedMat, sirenGlowBlueMat,
+    name: opts.name ?? PLAYER_CAR_NAME,
+  };
 }
 
 export class Vehicle {

@@ -12,7 +12,10 @@ chromium or any browser here can thrash swap and kill the build session.
   in `shots.json` at 1280x720 and pulls the PNGs back into `screenshots/`. It also prints OK/FAIL
   per file against the competition caps (<=256 KiB, long side <=1280, short side >=480).
 - To read one of those images, use your own image/vision tool on the file in `screenshots/`.
-  (If your model cannot see images, ask the operator to look and describe it.)
+  You CAN see images: `Read screenshots/1-cover.jpg` shows you the frame. Use it — judge the frame
+  against /home/ubuntu/makefun_workspace/gta6_brief/reference.jpg (sunset coastal highway, blue sports
+  car lower-middle, police cars beside/behind, helicopter above, harbor cranes + skyline on the
+  horizon, wet asphalt reflecting headlights and sirens, full HUD) and fix what does not match.
 
 ## Static, offline, no network
 - Everything the game loads is a file under `game/` or a `data:` URI. No CDN, no remote fonts, no fetch.

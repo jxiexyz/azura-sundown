@@ -3,6 +3,7 @@ export const CITY_NAME = 'Port Azura';
 export const POLICE_NAME = 'Azura Bay Police Department';
 export const POLICE_SHORT = 'ABPD';
 export const PLAYER_CAR_NAME = 'Vantara S9';
+export const PLAYER_NAME = 'Riko Vance';
 export const START_CASH = 2500;
 
 export const DISTRICTS = [

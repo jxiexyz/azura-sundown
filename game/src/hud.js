@@ -18,6 +18,9 @@ export function createHud() {
     start: document.getElementById('start-screen'),
     pause: document.getElementById('pause-screen'),
     carName: document.getElementById('car-name'),
+    policePanel: document.getElementById('police-panel'),
+    policeHeader: document.getElementById('police-header'),
+    policeUnits: document.getElementById('police-units'),
   };
   const ctx = el.speedoCanvas.getContext('2d');
   const stars = [...el.wanted.querySelectorAll('.star')];
@@ -51,6 +54,21 @@ export function createHud() {
     toastTimer = seconds;
   }
 
+  function clearToast() {
+    toastTimer = 0;
+    el.toast.classList.remove('show');
+  }
+
+  function setPoliceUnits(list) {
+    const active = Array.isArray(list) && list.length > 0;
+    el.policePanel.classList.toggle('hidden', !active);
+    if (!active) return;
+    el.policeHeader.textContent = `ABPD DISPATCH · ${list.length} UNIT${list.length > 1 ? 'S' : ''}`;
+    el.policeUnits.innerHTML = list
+      .map((u) => `<div class="pu-row"><span class="pu-id">${u.id}</span><span class="pu-dist">${Math.round(u.dist)} m</span><span class="pu-st st-${u.status.toLowerCase()}">${u.status}</span></div>`)
+      .join('');
+  }
+
   function setDriving(driving, carName) {
     el.speedo.classList.toggle('hidden', !driving);
     if (carName) el.carName.textContent = carName;
@@ -62,8 +80,8 @@ export function createHud() {
     el.hud.classList.toggle('hidden', name === 'start');
   }
 
-  function drawSpeedo(kmh, rpm, gear) {
-    shownSpeed += (kmh - shownSpeed) * 0.25;
+  function drawSpeedo(kmh, rpm, gear, snap = false) {
+    shownSpeed = snap ? kmh : shownSpeed + (kmh - shownSpeed) * 0.25;
     const w = el.speedoCanvas.width;
     const c = w / 2;
     const r = c - 12;
@@ -158,5 +176,5 @@ export function createHud() {
   document.getElementById('game-title').textContent = GAME_TITLE;
   document.title = GAME_TITLE + ' — Port Azura';
 
-  return { setCash, setWanted, setDistrict, setMission, toast, setDriving, showScreen, drawSpeedo, update, getCash: () => cash };
+  return { setCash, setWanted, setDistrict, setMission, toast, clearToast, setPoliceUnits, setDriving, showScreen, drawSpeedo, update, getCash: () => cash };
 }

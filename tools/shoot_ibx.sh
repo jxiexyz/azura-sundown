@@ -33,6 +33,7 @@ for row in "${SHOTS[@]}"; do
   name="${row%%$'\t'*}"; query="${row#*$'\t'}"
   echo "shot $name  $query"
   python3 "$IBX" exec "cd $REMOTE && chromium --headless=new --no-sandbox --hide-scrollbars --run-all-compositor-stages-before-draw --window-size=1280,720 --virtual-time-budget=20000 --screenshot=$REMOTE/out/$name 'http://127.0.0.1:8123/index.html$query' 2>&1 | grep -v dbus | tail -2; ls -la $REMOTE/out/$name" | tail -2
+  python3 "$IBX" exec "chromium --headless=new --no-sandbox --virtual-time-budget=8000 --dump-dom 'http://127.0.0.1:8123/index.html$query' 2>/dev/null | grep -o '<title>[^<]*</title>' | head -1"
   mkdir -p screenshots
   python3 "$IBX" get "$REMOTE/out/$name" "screenshots/$name" >/dev/null
 done

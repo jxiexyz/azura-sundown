@@ -11,6 +11,7 @@ const KEYMAP = {
   ShiftLeft: 'sprint',
   ShiftRight: 'sprint',
   KeyR: 'reset',
+  KeyF: 'enter',
   Escape: 'pause',
   Enter: 'confirm',
   KeyH: 'horn',

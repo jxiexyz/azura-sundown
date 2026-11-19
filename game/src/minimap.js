@@ -8,7 +8,7 @@ export function createMinimap(world) {
   const ctx = canvas.getContext('2d');
   const half = SIZE / 2;
 
-  function draw(car, waypoint, t) {
+  function draw(car, waypoint, t, extras = {}) {
     const a = car.heading;
     const ca = Math.cos(a);
     const sa = Math.sin(a);
@@ -76,6 +76,49 @@ export function createMinimap(world) {
       ctx.strokeStyle = road.w >= 24 ? '#5a6375' : '#454d5e';
       ctx.lineWidth = Math.max(2, road.w * SCALE);
       ctx.lineCap = 'round';
+      ctx.stroke();
+    }
+
+    if (extras.search) {
+      const [sx, sy] = tx(extras.search.x, extras.search.z);
+      const r = extras.search.r * SCALE;
+      ctx.beginPath();
+      ctx.arc(sx, sy, r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(77,141,255,0.12)';
+      ctx.fill();
+      ctx.setLineDash([4, 3]);
+      ctx.strokeStyle = 'rgba(127,178,255,0.7)';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    if (extras.police) {
+      for (const p of extras.police) {
+        const [sx, sy] = tx(p.x, p.z);
+        if (sx < -6 || sy < -6 || sx > SIZE + 6 || sy > SIZE + 6) continue;
+        ctx.beginPath();
+        ctx.arc(sx, sy, 3.4, 0, Math.PI * 2);
+        ctx.fillStyle = Math.sin(t * 9) > 0 ? '#ff4444' : '#4d8dff';
+        ctx.fill();
+        ctx.strokeStyle = '#0a0e18';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    }
+
+    if (extras.heli) {
+      const [sx, sy] = tx(extras.heli.x, extras.heli.z);
+      ctx.beginPath();
+      ctx.arc(sx, sy, 5, 0, Math.PI * 2);
+      ctx.strokeStyle = '#ffd9a0';
+      ctx.lineWidth = 1.4;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(sx - 6.5, sy);
+      ctx.lineTo(sx + 6.5, sy);
+      ctx.moveTo(sx, sy - 6.5);
+      ctx.lineTo(sx, sy + 6.5);
       ctx.stroke();
     }
 

@@ -11,6 +11,14 @@ export class ChaseCamera {
     this.shake = 0;
     this.time = 0;
     this.initialized = false;
+    this.onFoot = false;
+  }
+
+  setOnFoot(onFoot) {
+    if (this.onFoot !== onFoot) {
+      this.onFoot = onFoot;
+      this.initialized = false;
+    }
   }
 
   addShake(amount) {
@@ -22,8 +30,11 @@ export class ChaseCamera {
     const fx = Math.sin(car.heading);
     const fz = Math.cos(car.heading);
     const speed = car.speed;
-    const dist = CAMERA.distance + speed * CAMERA.distanceSpeedGain;
-    const height = CAMERA.height + speed * CAMERA.heightSpeedGain;
+    const baseDist = this.onFoot ? 5.2 : CAMERA.distance;
+    const baseHeight = this.onFoot ? 2.3 : CAMERA.height;
+    const lookAhead = this.onFoot ? 3.2 : CAMERA.lookAhead;
+    const dist = baseDist + speed * (this.onFoot ? 0.02 : CAMERA.distanceSpeedGain);
+    const height = baseHeight + speed * (this.onFoot ? 0.005 : CAMERA.heightSpeedGain);
     const carY = car.groundY();
 
     let desiredX = car.x - fx * dist;
@@ -50,10 +61,10 @@ export class ChaseCamera {
     this.pos.y = damp(this.pos.y, desiredY, lag * 1.4, dt);
     this.pos.z = damp(this.pos.z, desiredZ, lag, dt);
 
-    const lookX = car.x + fx * CAMERA.lookAhead;
-    const lookZ = car.z + fz * CAMERA.lookAhead;
+    const lookX = car.x + fx * lookAhead;
+    const lookZ = car.z + fz * lookAhead;
     this.look.x = damp(this.look.x, lookX, 8, dt);
-    this.look.y = damp(this.look.y, carY + 1.15, 8, dt);
+    this.look.y = damp(this.look.y, carY + (this.onFoot ? 1.35 : 1.15), 8, dt);
     this.look.z = damp(this.look.z, lookZ, 8, dt);
 
     this.shake = Math.max(0, this.shake - dt * 2.2);
@@ -66,7 +77,7 @@ export class ChaseCamera {
 
     this.camera.position.set(this.pos.x + ox, this.pos.y + oy, this.pos.z + oz);
     this.camera.lookAt(this.look.x + ox * 0.4, this.look.y + oy * 0.4, this.look.z);
-    const fov = CAMERA.fovBase + speed * CAMERA.fovSpeedGain;
+    const fov = (this.onFoot ? 58 : CAMERA.fovBase) + speed * (this.onFoot ? 0.05 : CAMERA.fovSpeedGain);
     if (Math.abs(this.camera.fov - fov) > 0.05) {
       this.camera.fov = damp(this.camera.fov, fov, 4, dt);
       this.camera.updateProjectionMatrix();
