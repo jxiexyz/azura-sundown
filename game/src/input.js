@@ -35,7 +35,10 @@ export function createInput() {
     const action = KEYMAP[e.code];
     if (!action) return;
     if (prevent.has(e.code)) e.preventDefault();
-    if (!e.repeat) pressed.add(action);
+    if (!e.repeat) {
+      pressed.add(action);
+      if (window.__inputLog) window.__inputLog.push({ type: 'press', action, size: pressed.size, t: performance.now() });
+    }
     held.add(action);
   });
   window.addEventListener('keyup', (e) => {
@@ -64,13 +67,16 @@ export function createInput() {
     takePressed(action) {
       const had = pressed.has(action);
       pressed.delete(action);
+      if (window.__inputLog) window.__inputLog.push({ type: 'take', action, had, t: performance.now() });
       return had;
     },
     look() {
       return { dx: lookX, dy: lookY };
     },
-    endFrame() {
+    endStep() {
       pressed.clear();
+    },
+    endFrame() {
       lookX = 0;
       lookY = 0;
     },

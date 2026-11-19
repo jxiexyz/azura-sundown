@@ -13,6 +13,13 @@
 <canvas id="scene"></canvas>
 <div id="vignette"></div>
 <div id="damage-flash"></div>
+<div id="aim-reticle" class="hidden" aria-hidden="true">
+  <span class="reticle-tick reticle-top"></span>
+  <span class="reticle-tick reticle-right"></span>
+  <span class="reticle-tick reticle-bottom"></span>
+  <span class="reticle-tick reticle-left"></span>
+  <span class="reticle-dot"></span>
+</div>
 
 <div id="hud" class="hidden">
   <div id="hud-top-left">
@@ -30,6 +37,12 @@
       <span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span>
     </div>
     <div id="district">CRESCENT STRIP</div>
+    <div id="icon-row">
+      <div class="hud-icon" id="icon-sound" title="Sound"><span class="glyph">♫</span></div>
+      <div class="hud-icon" id="icon-camera" title="Camera shake"><span class="glyph">◎</span></div>
+      <div class="hud-icon" id="icon-save" title="Save"><span class="glyph">▣</span></div>
+      <div class="hud-icon" id="icon-pause" title="Pause"><span class="glyph">❚❚</span></div>
+    </div>
   </div>
 
   <div id="police-panel" class="panel hidden">
@@ -40,6 +53,12 @@
   <div id="hud-bottom-left">
     <canvas id="minimap" width="200" height="200"></canvas>
     <div id="minimap-frame"></div>
+    <div id="minimap-district">CRESCENT STRIP</div>
+    <div id="minimap-bars">
+      <div class="mbar"><span class="mbar-label">HEALTH</span><span class="mbar-track"><span class="mbar-fill" id="mbar-health"></span></span></div>
+      <div class="mbar"><span class="mbar-label">HEAT</span><span class="mbar-track"><span class="mbar-fill heat" id="mbar-heat"></span></span></div>
+      <div class="mbar"><span class="mbar-label">COND</span><span class="mbar-track"><span class="mbar-fill fuel" id="mbar-fuel"></span></span></div>
+    </div>
   </div>
 
   <div id="speedo" class="hidden">
@@ -50,6 +69,15 @@
   <div id="combat-panel" class="hidden">
     <div id="health-bar"><div id="health-fill"></div></div>
     <div id="ammo-row"><span id="ammo">12</span><span id="ammo-sep">/</span><span id="reserve">60</span><span id="weapon-name">KESTREL 9</span></div>
+  </div>
+
+  <div id="control-hints">
+    <span><b>WASD</b> drive</span>
+    <span><b>SHIFT</b> sprint</span>
+    <span><b>SPACE</b> handbrake</span>
+    <span><b>F</b> exit</span>
+    <span><b>V</b> reload</span>
+    <span><b>ESC</b> pause</span>
   </div>
 
   <div id="toast"></div>

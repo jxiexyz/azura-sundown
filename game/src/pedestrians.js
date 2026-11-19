@@ -77,53 +77,79 @@ export function createPedestrians(scene, world, seed = 1) {
   }
   const peds = [];
 
+  const makePed = (road, side, dir, s) => {
+    const v = variants[Math.floor(rand() * variants.length)];
+    const upper = new THREE.Mesh(v.body, mat);
+    upper.castShadow = true;
+    const legL = new THREE.Mesh(v.leg, mat);
+    legL.position.set(-0.09, 0.88, 0);
+    const legR = new THREE.Mesh(v.leg, mat);
+    legR.position.set(0.09, 0.88, 0);
+    const armL = new THREE.Mesh(v.arm, mat);
+    armL.position.set(-0.225, 1.4, 0);
+    const armR = new THREE.Mesh(v.arm, mat);
+    armR.position.set(0.225, 1.4, 0);
+    const group = new THREE.Group();
+    group.rotation.order = 'YXZ';
+    group.add(upper, legL, legR, armL, armR);
+    const scale = 0.92 + rand() * 0.14;
+    group.scale.setScalar(scale);
+    scene.add(group);
+    const ped = {
+      group, legL, legR, armL, armR, road, side, dir, s,
+      speed: WALK * (0.8 + rand() * 0.5),
+      phase: rand() * Math.PI * 2,
+      mode: 'walk',
+      panicT: 0,
+      idleT: 0,
+      facing: 0,
+      fleeX: 0,
+      fleeZ: 0,
+      x: 0,
+      z: 0,
+    };
+    peds.push(ped);
+    return ped;
+  };
+
   for (const road of world.roads) {
-    const perSide = road.w >= 24 ? 5 : road.w >= 14 ? 3 : 2;
+    const downtown = road.w >= 14 && road.w < 24;
+    const clusterMax = road.w >= 24 ? 3 : downtown ? 4 : 2;
     for (const side of [-1, 1]) {
-      for (let i = 0; i < perSide; i++) {
+      const stops = downtown ? 4 : 2;
+      for (let c = 0; c < stops; c++) {
+        const anchor = road.from + 22 + ((road.to - road.from - 44) * (c + rand() * 0.7)) / stops;
+        const n = 2 + Math.floor(rand() * (clusterMax - 1));
+        for (let k = 0; k < n; k++) {
+          const dir = rand() < 0.5 ? 1 : -1;
+          const s = anchor + (k - n / 2) * (1.3 + rand() * 1.1);
+          const ped = makePed(road, side, dir, s);
+          if (k > 0 && rand() < 0.45) {
+            ped.mode = 'idle';
+            ped.idleT = 4 + rand() * 8;
+            ped.facing = Math.atan2(0, 1);
+          }
+        }
+      }
+      for (let i = 0; i < (road.w >= 24 ? 3 : 1); i++) {
         const dir = rand() < 0.5 ? 1 : -1;
-        const s = road.from + 12 + rand() * (road.to - road.from - 24);
-        const v = variants[Math.floor(rand() * variants.length)];
-        const upper = new THREE.Mesh(v.body, mat);
-        upper.castShadow = true;
-        const legL = new THREE.Mesh(v.leg, mat);
-        legL.position.set(-0.09, 0.88, 0);
-        const legR = new THREE.Mesh(v.leg, mat);
-        legR.position.set(0.09, 0.88, 0);
-        const armL = new THREE.Mesh(v.arm, mat);
-        armL.position.set(-0.225, 1.4, 0);
-        const armR = new THREE.Mesh(v.arm, mat);
-        armR.position.set(0.225, 1.4, 0);
-        const group = new THREE.Group();
-        group.rotation.order = 'YXZ';
-        group.add(upper, legL, legR, armL, armR);
-        const scale = 0.92 + rand() * 0.14;
-        group.scale.setScalar(scale);
-        scene.add(group);
-        peds.push({
-          group, legL, legR, armL, armR, road, side, dir, s,
-          speed: WALK * (0.8 + rand() * 0.5),
-          phase: rand() * Math.PI * 2,
-          mode: 'walk',
-          panicT: 0,
-          fleeX: 0,
-          fleeZ: 0,
-          x: 0,
-          z: 0,
-        });
+        makePed(road, side, dir, road.from + 12 + rand() * (road.to - road.from - 24));
       }
     }
   }
 
+  const SIDEWALK_BASE = 2.3;
+  const sidewalkOff = (p, extra = 0) => p.side * (p.road.w / 2 + SIDEWALK_BASE + extra);
+
   function sidewalkPos(p) {
-    const off = p.side * (p.road.w / 2 + 2.3);
+    const off = sidewalkOff(p);
     if (p.road.axis === 'z') {
-      p.x = p.road.at + off;
+      p.x = p.road.at + off + (p.lateralOffset ?? 0);
       p.z = p.s;
       p.heading = p.dir > 0 ? 0 : Math.PI;
     } else {
       p.x = p.s;
-      p.z = p.road.at + off;
+      p.z = p.road.at + off + (p.lateralOffset ?? 0);
       p.heading = p.dir > 0 ? Math.PI / 2 : -Math.PI / 2;
     }
   }
@@ -166,6 +192,13 @@ export function createPedestrians(scene, world, seed = 1) {
           p.s = p.road.axis === 'z' ? p.z : p.x;
           p.s = Math.max(p.road.from + 6, Math.min(p.road.to - 6, p.s));
         }
+      } else if (p.mode === 'idle') {
+        p.idleT -= dt;
+        sidewalkPos(p);
+        const toFacing = p.facing !== undefined ? p.facing : p.heading;
+        p.heading = toFacing;
+        p.phase += dt * 1.2;
+        if (p.idleT <= 0) p.mode = 'walk';
       } else {
         p.s += p.dir * p.speed * dt;
         if (p.s > p.road.to - 6) {
@@ -176,18 +209,24 @@ export function createPedestrians(scene, world, seed = 1) {
         sidewalkPos(p);
         p.phase += p.speed * dt * 2.6;
       }
-      const bob = Math.abs(Math.sin(p.phase)) * 0.025;
-      const y = heightAt(p.x, p.z) + (p.mode === 'walk' ? 0.09 : 0.03) + bob;
+      const walkMode = p.mode === 'walk';
+      const bob = walkMode ? Math.abs(Math.sin(p.phase)) * 0.025 : Math.sin(p.phase * 0.8) * 0.01;
+      const y = heightAt(p.x, p.z) + (p.mode === 'panic' ? 0.03 : 0.09) + bob;
       p.group.position.set(p.x, y, p.z);
       p.group.rotation.y = p.heading;
       const panic = p.mode === 'panic';
+      const idle = p.mode === 'idle';
       const swing = Math.sin(p.phase) * (panic ? 0.95 : 0.5);
-      p.legL.rotation.x = swing;
-      p.legR.rotation.x = -swing;
+      p.legL.rotation.x = idle ? 0 : swing;
+      p.legR.rotation.x = idle ? 0 : -swing;
       if (panic) {
         p.group.rotation.x = 0.22;
         p.armL.rotation.x = -2.3 + Math.sin(p.phase * 1.6) * 0.4;
         p.armR.rotation.x = -2.3 - Math.sin(p.phase * 1.6) * 0.4;
+      } else if (idle) {
+        p.group.rotation.x = 0;
+        p.armL.rotation.x = -0.35 + Math.sin(p.phase * 2.1) * 0.22;
+        p.armR.rotation.x = -0.3 + Math.sin(p.phase * 1.7 + 1) * 0.2;
       } else {
         p.group.rotation.x = 0.04;
         p.armL.rotation.x = -swing * 0.55;
@@ -221,11 +260,14 @@ export function createPedestrians(scene, world, seed = 1) {
     });
   }
 
-  for (const p of peds) {
-    sidewalkPos(p);
-    p.group.position.set(p.x, heightAt(p.x, p.z) + 0.09, p.z);
-    p.group.rotation.y = p.heading;
+  function sync() {
+    for (const p of peds) {
+      sidewalkPos(p);
+      p.group.position.set(p.x, heightAt(p.x, p.z) + 0.09, p.z);
+      p.group.rotation.y = p.heading;
+    }
   }
+  sync();
 
-  return { peds, update, panic, hitTest, serialize, load };
+  return { peds, update, panic, hitTest, serialize, load, sync };
 }

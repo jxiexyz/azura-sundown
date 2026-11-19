@@ -30,6 +30,17 @@ export function createHud() {
     fail: document.getElementById('fail-screen'),
     wasted: document.getElementById('wasted-screen'),
     settings: document.getElementById('settings-screen'),
+    crosshair: document.getElementById('aim-reticle'),
+    minimapDistrict: document.getElementById('minimap-district'),
+    barHealth: document.getElementById('mbar-health'),
+    barHeat: document.getElementById('mbar-heat'),
+    barFuel: document.getElementById('mbar-fuel'),
+    icons: {
+      sound: document.getElementById('icon-sound'),
+      camera: document.getElementById('icon-camera'),
+      save: document.getElementById('icon-save'),
+      pause: document.getElementById('icon-pause'),
+    },
   };
   const ctx = el.speedoCanvas.getContext('2d');
   const stars = [...el.wanted.querySelectorAll('.star')];
@@ -49,6 +60,32 @@ export function createHud() {
 
   function setDistrict(name) {
     if (el.district.textContent !== name) el.district.textContent = name;
+    if (el.minimapDistrict && el.minimapDistrict.textContent !== name) el.minimapDistrict.textContent = name;
+  }
+
+  function setStatusBars(health, heat, fuel) {
+    if (el.barHealth) {
+      el.barHealth.style.width = clamp(health, 0, 100) + '%';
+      el.barHealth.style.background = health > 55 ? '#6de08a' : health > 25 ? '#ffcf4d' : '#ff5a4a';
+    }
+    if (el.barHeat) el.barHeat.style.width = clamp(heat * 20, 0, 100) + '%';
+    if (el.barFuel) el.barFuel.style.width = clamp(fuel, 0, 100) + '%';
+  }
+
+  function setIcon(name, on) {
+    const node = el.icons[name];
+    if (node) node.classList.toggle('off', !on);
+  }
+
+  function showCrosshair(visible) {
+    el.crosshair?.classList.toggle('hidden', !visible);
+  }
+
+  function onIcon(name, fn) {
+    const node = el.icons[name];
+    if (!node) return;
+    node.style.pointerEvents = 'auto';
+    node.addEventListener('click', (e) => { e.stopPropagation(); fn(); });
   }
 
   function setMission(title, objective, status) {
@@ -241,6 +278,8 @@ export function createHud() {
   return {
     setCash, setWanted, setDistrict, setMission, toast, clearToast, setPoliceUnits, setDriving,
     showScreen, drawSpeedo, update, setHealth, setAmmo, setDamageFlash, setCombatVisible,
+    setStatusBars, setIcon, onIcon,
+    showCrosshair,
     getCash: () => cash,
   };
 }

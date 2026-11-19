@@ -223,11 +223,11 @@ export function createVehicleMesh(opts = {}) {
   const trimColor = 0x101216;
   const bodyMat = new THREE.MeshPhysicalMaterial({
     vertexColors: true,
-    roughness: opts.police ? 0.35 : 0.28,
+    roughness: opts.police ? 0.4 : 0.36,
     metalness: 0.45,
     clearcoat: 0.8,
-    clearcoatRoughness: 0.18,
-    envMapIntensity: 1.1,
+    clearcoatRoughness: 0.28,
+    envMapIntensity: 0.85,
   });
   const glass = new THREE.MeshPhysicalMaterial({
     color: 0x1a2836, roughness: 0.15, metalness: 0.4, envMapIntensity: 1.6,
@@ -378,7 +378,7 @@ export function createVehicleMesh(opts = {}) {
   }
 
   const lightsOn = opts.lightsOn !== false;
-  const headMat = new THREE.MeshStandardMaterial({ color: 0xfff7e0, emissive: 0xfff2cc, emissiveIntensity: lightsOn ? 1.1 : 0.06 });
+  const headMat = new THREE.MeshStandardMaterial({ color: 0xfff7e0, emissive: 0xfff2cc, emissiveIntensity: lightsOn ? 0.45 : 0.06 });
   const tailMat = new THREE.MeshStandardMaterial({ color: 0x550000, emissive: 0xff2211, emissiveIntensity: lightsOn ? 1.5 : 0.08 });
   const reverseMat = new THREE.MeshStandardMaterial({ color: 0x333333, emissive: 0xffffff, emissiveIntensity: 0 });
   const headParts = [];
@@ -433,14 +433,14 @@ export function createVehicleMesh(opts = {}) {
 
   const shadowGeo = new THREE.PlaneGeometry(4.2, 6.2);
   shadowGeo.rotateX(-Math.PI / 2);
-  const shadow = new THREE.Mesh(shadowGeo, new THREE.MeshBasicMaterial({ map: radialTexture(128, 2.8), color: 0x000000, transparent: true, opacity: 0.5, depthWrite: false }));
+  const shadow = new THREE.Mesh(shadowGeo, new THREE.MeshBasicMaterial({ map: radialTexture(128, 1.2), color: 0x000000, transparent: true, opacity: 0.85, depthWrite: false }));
   shadow.position.y = 0.045;
   root.add(shadow);
 
   const headlights = [];
   if (opts.spotlights !== false) {
     for (const side of [-1, 1]) {
-      const spot = new THREE.SpotLight(0xffd9a0, 60, 55, 0.42, 0.5, 1.4);
+      const spot = new THREE.SpotLight(0xffd9a0, 12, 36, 0.38, 0.65, 1.6);
       spot.position.set(side * 0.6, style.headY + 0.05, style.headZ);
       const target = new THREE.Object3D();
       target.position.set(side * 0.9, 0, 22);
@@ -643,8 +643,8 @@ export class Vehicle {
     for (const s of m.steerGroups) if (s) s.rotation.y = this.steer * 0.8;
     m.tailMat.emissiveIntensity = this.braking ? 3.8 : m.lightsOn ? 1.5 : 0.08;
     m.tailGlowMat.opacity = this.braking ? 0.26 : m.lightsOn ? 0.09 : 0;
-    m.headMat.emissiveIntensity = m.lightsOn ? 1.1 : 0.06;
-    m.beamMat.opacity = m.lightsOn ? 0.05 : 0;
+    m.headMat.emissiveIntensity = m.lightsOn ? 0.45 : 0.06;
+    m.beamMat.opacity = m.lightsOn ? 0.028 : 0;
     m.reverseMat.emissiveIntensity = this.reversing ? 1.6 : 0;
   }
 

@@ -213,6 +213,11 @@ export function createCombat(deps) {
     return (hp.get(vehicle) ?? COMBAT.vehicleHealth) <= 0;
   }
 
+  function vehicleHealth(vehicle) {
+    if (!vehicle) return 100;
+    return clamp((hp.get(vehicle) ?? COMBAT.vehicleHealth) / COMBAT.vehicleHealth, 0, 1) * 100;
+  }
+
   function collectTargets() {
     const out = [];
     const addBox = (x, z, hw, hh, hd, kind, ref) => {
@@ -343,7 +348,8 @@ export function createCombat(deps) {
     deps.chase?.setAiming?.(isAiming);
     pistol.visible = onFoot && (isAiming || fireTimer > 0);
     if (onFoot) {
-      player.mesh.armR.rotation.x = isAiming ? -1.15 : (pistol.visible ? -0.75 : player.mesh.armR.rotation.x);
+      player.mesh.armR.rotation.x = isAiming ? -Math.PI / 2 : (pistol.visible ? -0.75 : player.mesh.armR.rotation.x);
+      pistol.rotation.x = isAiming ? Math.PI / 2 : 0.57;
       if (isAiming || pistol.visible) player.mesh.armR.userData.elbow.rotation.x = -0.08;
     }
     if (fireTimer > 0) fireTimer -= dt;
@@ -417,6 +423,7 @@ export function createCombat(deps) {
     damagePlayer,
     damageVehicle,
     isVehicleDestroyed,
+    vehicleHealth,
     hostiles: () => hostiles.map((h) => ({ x: h.x, z: h.z, heading: h.heading, health: h.health })),
     spawnHostiles,
     serialize,

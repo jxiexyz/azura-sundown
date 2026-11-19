@@ -91,6 +91,10 @@ const COMPOSITE_FS = `
     c = rrtFit(c);
     c = outMat * c;
     c = clamp(c, 0.0, 1.0);
+    float lum = dot(c, vec3(0.299, 0.587, 0.114));
+    c = mix(vec3(lum), c, 1.1);
+    c *= vec3(1.035, 1.0, 0.955);
+    c = mix(c, c * c * (3.0 - 2.0 * c), 0.1);
     vec2 q = vUv - 0.5;
     c *= 1.0 - uVignette * dot(q, q) * 1.7;
     vec3 lo = c * 12.92;
@@ -107,7 +111,7 @@ export function createPostFX(renderer, scene, camera) {
   quadScene.add(quadMesh);
 
   const brightMat = new THREE.ShaderMaterial({
-    uniforms: { tDiffuse: { value: null }, uThreshold: { value: 1.2 }, uKnee: { value: 0.5 } },
+    uniforms: { tDiffuse: { value: null }, uThreshold: { value: 1.18 }, uKnee: { value: 0.4 } },
     vertexShader: QUAD_VS,
     fragmentShader: BRIGHT_FS,
     depthTest: false,
@@ -124,9 +128,9 @@ export function createPostFX(renderer, scene, camera) {
     uniforms: {
       tBase: { value: null },
       tBloom: { value: null },
-      uStrength: { value: 0.34 },
+      uStrength: { value: 0.32 },
       uExposure: { value: 1.0 },
-      uVignette: { value: 0.12 },
+      uVignette: { value: 0.16 },
       uTexel: { value: new THREE.Vector2() },
     },
     vertexShader: QUAD_VS,

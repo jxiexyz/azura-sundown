@@ -179,6 +179,27 @@ deps.onFail = () => { state = 'pause'; };
 const save = createSave(deps);
 deps.save = save;
 
+let soundOn = true;
+let shakeOn = true;
+hud.onIcon('sound', () => {
+  soundOn = !soundOn;
+  hud.setIcon('sound', soundOn);
+  audio.setVolume(soundOn ? 0.5 : 0);
+  if (soundOn) audio.resume();
+});
+hud.onIcon('camera', () => {
+  shakeOn = !shakeOn;
+  hud.setIcon('camera', shakeOn);
+  chase.shakeEnabled = shakeOn;
+  invertY = invertY;
+});
+hud.onIcon('save', () => {
+  save.save();
+  hud.toast('PROGRESS SAVED', 1.8);
+  audio.play('ui');
+});
+hud.onIcon('pause', () => setPaused(state === 'play'));
+
 hud.setDistrict(lastDistrict.name);
 hud.setDriving(true, carMesh.name);
 hud.showScreen('start');
@@ -359,6 +380,7 @@ function stepGame(dt) {
     hud.setDistrict(d.name);
     hud.toast(d.label.toUpperCase(), 2.2);
   }
+  input.endStep?.();
 }
 
 function minimapExtras() {
@@ -392,6 +414,7 @@ function minimapExtras() {
 
 function renderFrame(dt) {
   elapsed += dt;
+  hud.showCrosshair(combat.aiming());
   const t = target();
   if (mode === 'car') player.updateEnter(dt);
   world.update(dt, elapsed, { x: t.x, y: t.groundY(), z: t.z });
@@ -414,6 +437,7 @@ function renderFrame(dt) {
     hud.setWanted(police.getLevel());
     hud.setPoliceUnits(police.info(t));
   }
+  hud.setStatusBars(combat.health(), police.getLevel(), combat.vehicleHealth(mode === 'car' ? activeVehicle : null));
   audio.update(dt, {
     car: {
       speed: activeVehicle.speed, rpm: activeVehicle.rpm, throttle: input.throttle(),
@@ -463,29 +487,45 @@ const SHOT_POSES = {
     cruise: 31,
     wanted: 4,
     rain: true,
+    cam: { distance: 8.2, height: 2.0, fov: 64 },
     units: [
       { dx: -5.5, dz: -2, status: 'PURSUIT' },
       { dx: 5.5, dz: 0, status: 'PURSUIT' },
       { dx: 7.5, dz: 12, status: 'RAMMING' },
       { dx: 0, dz: 120, status: 'ROADBLOCK' },
     ],
-    heli: { dx: -6, dy: 21, dz: 58 },
+    heli: { dx: -7, dy: 19, dz: 46 },
     traffic: [
       { road: 0, dir: 1, s: 165, speed: 12 },
       { road: 0, dir: -1, s: 205, speed: 13 },
+    ],
+    peds: [
+      { road: 0, side: 1, s: 50, dir: 1 },
+      { road: 0, side: 1, s: 56, lat: 0.8, dir: -1 },
+      { road: 0, side: -1, s: 52, dir: -1 },
+      { road: 0, side: -1, s: 58, lat: -0.8, dir: 1 },
+      { road: 0, side: 1, s: 70, dir: 1 },
+      { road: 0, side: -1, s: 74, dir: -1 },
     ],
   },
   onfoot: {
     mode: 'foot',
     mission: null,
-    spawn: { x: -80.7, z: -150, heading: 0 },
-    carPark: { x: -84.2, z: -158, heading: 0 },
+    spawn: { x: -82.0, z: -150, heading: 0 },
+    carPark: { x: -84.25, z: -144.5, heading: 0 },
     cruise: 0,
     wanted: 0,
     rain: false,
+    cam: { distance: 4.0, height: 2.15, fov: 60 },
     units: [],
     heli: null,
     peds: [
+      { road: 7, side: 1, s: -137.0, lat: 0.4, dir: -1, idle: 9, facing: Math.PI + 0.25 },
+      { road: 7, side: 1, s: -139.0, lat: 1.5, dir: -1, idle: 8, facing: Math.PI - 0.35 },
+      { road: 7, side: 1, s: -136.0, lat: 2.8, dir: -1, idle: 7, facing: Math.PI + 0.1 },
+      { road: 7, side: 1, s: -133.0, lat: 4.0, dir: -1, idle: 6, facing: Math.PI + 0.15 },
+      { road: 7, side: 1, s: -132.0, lat: 1.5, dir: -1, idle: 9, facing: Math.PI - 0.2 },
+      { road: 7, side: 1, s: -141.2, lat: 2.2, dir: -1, idle: 5, facing: Math.PI - 0.05 },
       { road: 7, side: 1, s: -134, dir: -1 },
       { road: 7, side: -1, s: -128, dir: 1 },
       { road: 7, side: 1, s: -122, dir: 1 },
@@ -500,7 +540,7 @@ const SHOT_POSES = {
       { road: 2, side: 1, s: -58, dir: 1 },
       { road: 7, side: 1, s: -128, dir: -1 },
       { road: 7, side: -1, s: -134, dir: 1 },
-      { road: 7, side: 1, s: -140, dir: 1 },
+      { road: 7, side: 1, s: -130, dir: 1 },
     ],
     traffic: [
       { road: 7, dir: -1, s: -98, speed: 9 },
@@ -516,13 +556,28 @@ const SHOT_POSES = {
     cruise: 15,
     wanted: 0,
     rain: false,
+    cam: { distance: 7.2, height: 2.1, fov: 60 },
     units: [],
     heli: null,
     traffic: [
+      { road: 7, dir: -1, s: -120, speed: 10 },
+      { road: 7, dir: -1, s: -155, speed: 9 },
       { road: 7, dir: 1, s: -20, speed: 10 },
       { road: 7, dir: 1, s: 15, speed: 11 },
       { road: 7, dir: -1, s: -40, speed: 10 },
       { road: 2, dir: 1, s: -60, speed: 9 },
+    ],
+    peds: [
+      { road: 7, side: 1, s: -37, lat: 0.7, dir: 1 },
+      { road: 7, side: 1, s: -33, lat: -0.4, dir: -1 },
+      { road: 7, side: -1, s: -36, lat: -0.7, dir: -1 },
+      { road: 7, side: -1, s: -31, lat: 0.5, dir: 1 },
+      { road: 7, side: 1, s: -23, lat: 0.4, dir: 1 },
+      { road: 7, side: -1, s: -22, lat: -0.4, dir: -1 },
+      { road: 7, side: 1, s: -10, dir: -1 },
+      { road: 7, side: -1, s: -8, dir: 1 },
+      { road: 7, side: 1, s: 6, dir: 1 },
+      { road: 7, side: -1, s: 10, dir: -1 },
     ],
   },
   pursuit: {
@@ -548,7 +603,7 @@ const SHOT_POSES = {
     cruise: 8,
     wanted: 3,
     rain: true,
-    cam: { distance: 8.5, height: 3.6, fov: 66 },
+    cam: { distance: 9.5, height: 3.5, fov: 68 },
     units: [
       { dx: -5, dz: -1, status: 'PURSUIT' },
       { dx: 5, dz: 3, status: 'PURSUIT' },
@@ -634,13 +689,17 @@ function setupShot(name) {
       p.staged = true;
       p.s = spec.s;
       p.dir = spec.dir;
-      p.mode = 'walk';
+      p.mode = spec.idle ? 'idle' : 'walk';
+      p.idleT = spec.idle ?? 0;
       p.panicT = 0;
       const road = world.roads[spec.road];
       const off = spec.side * (road.w / 2 + 2.3);
-      p.x = road.axis === 'z' ? road.at + off : spec.s;
-      p.z = road.axis === 'z' ? spec.s : road.at + off;
+      const lat = spec.lat ?? 0;
+      p.lateralOffset = lat;
+      p.x = road.axis === 'z' ? road.at + off + lat : spec.s;
+      p.z = road.axis === 'z' ? spec.s : road.at + off + lat;
       p.heading = road.axis === 'z' ? (spec.dir > 0 ? 0 : Math.PI) : (spec.dir > 0 ? Math.PI / 2 : -Math.PI / 2);
+      if (spec.facing !== undefined) p.facing = spec.facing;
       p.group.position.set(p.x, heightAt(p.x, p.z) + 0.09, p.z);
       p.group.rotation.y = p.heading;
     }
@@ -686,6 +745,7 @@ function setupShot(name) {
   hud.setDriving(mode === 'car', activeMesh.name);
   hud.setWanted(pose.wanted);
   hud.setPoliceUnits(police.info(t));
+  hud.setStatusBars(combat.health(), pose.wanted, combat.vehicleHealth(mode === 'car' ? activeVehicle : null));
   const stop = missions.current();
   hud.setCombatVisible(mode === 'foot');
   hud.drawSpeedo(Math.abs(car.forwardSpeed) * 3.6, car.rpm, car.gear, true);
