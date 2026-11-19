@@ -53,11 +53,16 @@ export function createTraffic(scene, world, seed = 1) {
   }
 
   const parkSpots = [
+    { road: world.roads[0], side: 1, s: -52 },
+    { road: world.roads[0], side: -1, s: -72 },
+    { road: world.roads[0], side: 1, s: -86 },
     { road: world.roads[7], side: 1, s: -165 },
     { road: world.roads[7], side: 1, s: -138 },
     { road: world.roads[2], side: -1, s: -52 },
     { road: world.roads[0], side: 1, s: -210 },
     { road: world.roads[0], side: -1, s: 130 },
+    { road: world.roads[6], side: 1, s: -260 },
+    { road: world.roads[9], side: -1, s: 180 },
     { road: world.roads[3], side: 1, s: 210 },
     { road: world.roads[8], side: -1, s: 240 },
     { road: world.roads[5], side: 1, s: 60 },

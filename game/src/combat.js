@@ -318,7 +318,8 @@ export function createCombat(deps) {
     }
     if (mag <= 0 && reserve > 0 && reloadTimer <= 0) reload();
     if (onFoot && input?.takePressed?.('fire')) shoot();
-    if (onFoot && (input?.takePressed?.('reload') || (isAiming && input?.takePressed?.('reset')))) reload();
+    if (onFoot && input?.takePressed?.('reload')) reload();
+    if (onFoot && isAiming && input?.takePressed?.('reset')) reload();
     if (!dead && regenTimer >= COMBAT.regenDelay && health < COMBAT.maxHealth) {
       health = Math.min(COMBAT.maxHealth, health + COMBAT.regenRate * dt);
     }
