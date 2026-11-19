@@ -1,6 +1,6 @@
 import THREE from 'three';
 import { COMBAT, SAFEHOUSE } from './config.js';
-import { mulberry32, clamp } from './utils.js';
+import { mulberry32, clamp, mergeParts, mat4 } from './utils.js';
 import { heightAt } from './world.js';
 
 export const WEAPONS = {
@@ -87,23 +87,56 @@ export function createCombat(deps) {
   function hostileMesh() {
     const root = new THREE.Group();
     const coat = new THREE.MeshStandardMaterial({ color: 0x23262e, roughness: 0.8 });
-    const skin = new THREE.MeshStandardMaterial({ color: 0xa8795a, roughness: 0.8 });
-    const torso = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.6, 0.28), coat);
-    torso.position.y = 1.1;
+    const coatDark = new THREE.MeshStandardMaterial({ color: 0x1a1d24, roughness: 0.8 });
+    const skin = new THREE.MeshStandardMaterial({ color: 0xa8795a, roughness: 0.7 });
+    const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.16, 0.5, 10), coat);
+    torso.scale.z = 0.72;
+    torso.position.y = 1.14;
     torso.castShadow = true;
     root.add(torso);
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), skin);
-    head.position.y = 1.56;
+    const hips = new THREE.Mesh(new THREE.CapsuleGeometry(0.15, 0.08, 3, 8), coatDark);
+    hips.scale.set(1.1, 0.8, 0.8);
+    hips.position.y = 0.9;
+    root.add(hips);
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 0.08, 8), skin);
+    neck.position.y = 1.44;
+    root.add(neck);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 10), skin);
+    head.scale.set(0.92, 1.05, 0.98);
+    head.position.y = 1.57;
+    head.castShadow = true;
     root.add(head);
-    const legGeo = new THREE.BoxGeometry(0.16, 0.8, 0.18);
-    legGeo.translate(0, -0.4, 0);
-    const legL = new THREE.Mesh(legGeo, coat);
-    legL.position.set(-0.11, 0.82, 0);
-    const legR = new THREE.Mesh(legGeo, coat);
-    legR.position.set(0.11, 0.82, 0);
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.125, 10, 7, 0, Math.PI * 2, 0, Math.PI * 0.55), coatDark);
+    cap.position.y = 1.585;
+    root.add(cap);
+    const legGeo = new THREE.CapsuleGeometry(0.065, 0.62, 3, 8);
+    legGeo.translate(0, -0.36, 0);
+    const shoeGeo = new THREE.BoxGeometry(0.11, 0.08, 0.24);
+    const legParts = mergeParts([
+      { geometry: legGeo, color: 0x1a1d24 },
+      { geometry: shoeGeo, matrix: mat4(0, -0.76, 0.04), color: 0x101216 },
+    ]);
+    legGeo.dispose();
+    shoeGeo.dispose();
+    const legMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 });
+    const legL = new THREE.Mesh(legParts, legMat);
+    legL.position.set(-0.1, 0.86, 0);
+    const legR = new THREE.Mesh(legParts, legMat);
+    legR.position.set(0.1, 0.86, 0);
+    legL.castShadow = true;
+    legR.castShadow = true;
     root.add(legL, legR);
-    const gun = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.1, 0.34), new THREE.MeshStandardMaterial({ color: 0x14161b, metalness: 0.7, roughness: 0.4 }));
-    gun.position.set(0.28, 1.08, 0.22);
+    const armGeo = new THREE.CapsuleGeometry(0.05, 0.4, 3, 8);
+    armGeo.translate(0, -0.24, 0);
+    const armL = new THREE.Mesh(armGeo, coat);
+    armL.position.set(-0.24, 1.36, 0);
+    armL.rotation.x = -0.5;
+    const armR = new THREE.Mesh(armGeo, coat);
+    armR.position.set(0.24, 1.36, 0);
+    armR.rotation.x = -1.1;
+    root.add(armL, armR);
+    const gun = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.1, 0.32), new THREE.MeshStandardMaterial({ color: 0x14161b, metalness: 0.7, roughness: 0.4 }));
+    gun.position.set(0.24, 1.12, 0.3);
     root.add(gun);
     return { root, legL, legR };
   }
@@ -311,6 +344,7 @@ export function createCombat(deps) {
     pistol.visible = onFoot && (isAiming || fireTimer > 0);
     if (onFoot) {
       player.mesh.armR.rotation.x = isAiming ? -1.15 : (pistol.visible ? -0.75 : player.mesh.armR.rotation.x);
+      if (isAiming || pistol.visible) player.mesh.armR.userData.elbow.rotation.x = -0.08;
     }
     if (fireTimer > 0) fireTimer -= dt;
     if (wantedTimer > 0) wantedTimer -= dt;

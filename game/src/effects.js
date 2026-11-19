@@ -85,7 +85,7 @@ export function createEffects(scene) {
   const smokePool = makePool(0x8a8f9a, 0.85, 60, 1.2, 0.32);
   const sprayPool = makePool(0xaebccd, 0.28, 150, -3.5, 0.09);
 
-  const RAIN_N = 420;
+  const RAIN_N = 260;
   const rainPos = new Float32Array(RAIN_N * 6);
   const rainTip = new Float32Array(RAIN_N * 2);
   const rainSeed = new Float32Array(RAIN_N * 2);
@@ -112,7 +112,7 @@ export function createEffects(scene) {
     uniforms: {
       uTime: { value: 0 },
       uColor: { value: new THREE.Color(0.55, 0.62, 0.75) },
-      uOpacity: { value: 0.22 },
+      uOpacity: { value: 0.14 },
     },
     vertexShader: `
       attribute float aTip;
@@ -224,7 +224,11 @@ export function createEffects(scene) {
     }
   }
 
-  return { sparks, flash, tracer, chip, smoke, spray, update };
+  function setRain(v) {
+    rain.visible = !!v;
+  }
+
+  return { sparks, flash, tracer, chip, smoke, spray, update, setRain };
 }
 
 export function createSpeedOverlay(element) {

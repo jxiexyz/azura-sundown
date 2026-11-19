@@ -36,11 +36,12 @@ body.shot *, body.shot *::before, body.shot *::after {
 #hud { position: fixed; inset: 0; pointer-events: none; }
 
 .panel {
-  background: rgba(10, 12, 20, 0.66);
-  border: 1px solid rgba(255, 176, 84, 0.28);
+  background: linear-gradient(160deg, rgba(14, 17, 26, 0.78), rgba(10, 12, 20, 0.6));
+  border: 1px solid rgba(255, 176, 84, 0.22);
   border-left: 3px solid #ffb054;
-  border-radius: 6px;
-  backdrop-filter: blur(3px);
+  border-radius: 8px;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
 }
 
 #hud-top-left {
@@ -51,7 +52,7 @@ body.shot *, body.shot *::before, body.shot *::after {
 }
 
 #logo {
-  font-size: 21px;
+  font-size: 22px;
   font-weight: 800;
   letter-spacing: 3px;
   color: #ffd9a0;
@@ -91,27 +92,30 @@ body.shot *, body.shot *::before, body.shot *::after {
   top: 16px;
   right: 16px;
   text-align: right;
-  padding: 6px 10px;
-  border-radius: 6px;
-  background: rgba(8, 10, 16, 0.42);
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: linear-gradient(200deg, rgba(14, 17, 26, 0.6), rgba(8, 10, 16, 0.38));
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(4px);
 }
 
 #cash {
   font-family: 'Consolas', 'Menlo', monospace;
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 700;
+  letter-spacing: 1px;
   color: #9fe8a8;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+  text-shadow: 0 2px 6px rgba(0,0,0,0.85);
 }
 
-#wanted { margin-top: 4px; font-size: 20px; letter-spacing: 3px; }
+#wanted { margin-top: 5px; font-size: 19px; letter-spacing: 4px; }
 #wanted .star {
-  color: rgba(140, 145, 160, 0.35);
+  color: rgba(140, 145, 160, 0.3);
   text-shadow: 0 1px 2px rgba(0,0,0,0.6);
 }
 #wanted .star.active {
   color: #ffcf4d;
-  text-shadow: 0 0 10px rgba(255, 190, 60, 0.9);
+  text-shadow: 0 0 8px rgba(255, 190, 60, 0.75), 0 1px 2px rgba(0,0,0,0.8);
 }
 #wanted.hot .star.active { animation: starflash 0.9s infinite alternate; }
 @keyframes starflash { from { opacity: 1; } to { opacity: 0.55; } }
@@ -127,9 +131,9 @@ body.shot *, body.shot *::before, body.shot *::after {
 #police-panel {
   position: absolute;
   left: 16px;
-  top: 150px;
-  width: 240px;
-  padding: 8px 10px;
+  top: 152px;
+  width: 244px;
+  padding: 8px 11px;
   border-left-color: #4d8dff;
 }
 #police-header {
@@ -166,15 +170,15 @@ body.shot *, body.shot *::before, body.shot *::after {
 #minimap {
   width: 200px;
   height: 200px;
-  border-radius: 8px;
+  border-radius: 10px;
   display: block;
 }
 #minimap-frame {
   position: absolute;
   inset: 0;
-  border: 2px solid rgba(255, 176, 84, 0.4);
-  border-radius: 8px;
-  box-shadow: 0 4px 18px rgba(0,0,0,0.55), inset 0 0 22px rgba(0,0,0,0.45);
+  border: 1.5px solid rgba(255, 176, 84, 0.45);
+  border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.6), inset 0 0 26px rgba(0,0,0,0.5);
   pointer-events: none;
 }
 
@@ -187,11 +191,12 @@ body.shot *, body.shot *::before, body.shot *::after {
 }
 #speedo-canvas { width: 190px; height: 190px; }
 #car-name {
-  margin-top: -6px;
+  margin-top: -4px;
   font-size: 11px;
-  letter-spacing: 2.5px;
-  color: rgba(255, 217, 160, 0.8);
-  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+  font-weight: 600;
+  letter-spacing: 3px;
+  color: rgba(255, 217, 160, 0.85);
+  text-shadow: 0 1px 3px rgba(0,0,0,0.85);
 }
 
 #toast {

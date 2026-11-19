@@ -23,7 +23,7 @@ export function mergeParts(parts) {
   const geos = parts.map((p) => {
     let g = p.geometry.index ? p.geometry.toNonIndexed() : p.geometry.clone();
     if (p.matrix) g.applyMatrix4(p.matrix);
-    return { g, color: new THREE.Color(p.color ?? 0xffffff) };
+    return { g, color: p.color == null ? null : new THREE.Color(p.color) };
   });
   let total = 0;
   for (const { g } of geos) total += g.attributes.position.count;
@@ -37,10 +37,16 @@ export function mergeParts(parts) {
     pos.set(g.attributes.position.array, at * 3);
     nor.set(g.attributes.normal.array, at * 3);
     if (g.attributes.uv) uv.set(g.attributes.uv.array, at * 2);
-    for (let i = 0; i < n; i++) {
-      col[(at + i) * 3] = color.r;
-      col[(at + i) * 3 + 1] = color.g;
-      col[(at + i) * 3 + 2] = color.b;
+    if (color) {
+      for (let i = 0; i < n; i++) {
+        col[(at + i) * 3] = color.r;
+        col[(at + i) * 3 + 1] = color.g;
+        col[(at + i) * 3 + 2] = color.b;
+      }
+    } else if (g.attributes.color) {
+      col.set(g.attributes.color.array, at * 3);
+    } else {
+      col.fill(1, at * 3, (at + n) * 3);
     }
     at += n;
     g.dispose();
@@ -51,6 +57,46 @@ export function mergeParts(parts) {
   out.setAttribute('color', new THREE.BufferAttribute(col, 3));
   out.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
   return out;
+}
+
+export function loftGeometry(sections) {
+  const n = sections[0].pts.length;
+  const rings = sections.length;
+  const pos = [];
+  const uv = [];
+  const idx = [];
+  for (let i = 0; i < rings; i++) {
+    const s = sections[i];
+    for (let j = 0; j < n; j++) {
+      pos.push(s.pts[j][0], s.pts[j][1], s.z);
+      uv.push(j / n, i / (rings - 1));
+    }
+  }
+  for (let i = 0; i < rings - 1; i++) {
+    for (let j = 0; j < n; j++) {
+      const a = i * n + j;
+      const b = i * n + ((j + 1) % n);
+      const c = (i + 1) * n + j;
+      const d = (i + 1) * n + ((j + 1) % n);
+      idx.push(a, b, c, b, d, c);
+    }
+  }
+  const c0 = pos.length / 3;
+  pos.push(0, (sections[0].pts[0][1] + sections[0].pts[Math.floor(n / 2)][1]) / 2, sections[0].z);
+  uv.push(0.5, 0);
+  for (let j = 0; j < n; j++) idx.push(c0, (j + 1) % n, j);
+  const c1 = pos.length / 3;
+  const last = sections[rings - 1];
+  pos.push(0, (last.pts[0][1] + last.pts[Math.floor(n / 2)][1]) / 2, last.z);
+  uv.push(0.5, 1);
+  const base = (rings - 1) * n;
+  for (let j = 0; j < n; j++) idx.push(c1, base + j, base + ((j + 1) % n));
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
 }
 
 export function mat4(x, y, z, ry = 0, sx = 1, sy = 1, sz = 1) {
@@ -202,7 +248,7 @@ export function asphaltMaps(rand) {
       for (let x = 0; x < S; x++) {
         const p = puddle[y * S + x];
         const fine = sample(g64, 64, x / S, y / S);
-        const r = clamp(0.38 - p * 0.3 + (fine - 0.5) * 0.1, 0.05, 1);
+        const r = clamp(0.55 - p * 0.42 + (fine - 0.5) * 0.1, 0.08, 1);
         const c = Math.round(r * 255);
         const k = (y * S + x) * 4;
         img.data[k] = c;

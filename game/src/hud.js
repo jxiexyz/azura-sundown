@@ -127,78 +127,102 @@ export function createHud() {
     ctx.save();
     ctx.translate(c, c);
 
+    const bg = ctx.createRadialGradient(0, -r * 0.3, r * 0.2, 0, 0, r + 10);
+    bg.addColorStop(0, 'rgba(16,20,30,0.82)');
+    bg.addColorStop(1, 'rgba(6,8,14,0.66)');
     ctx.beginPath();
-    ctx.arc(0, 0, r + 8, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(8,10,16,0.72)';
+    ctx.arc(0, 0, r + 9, 0, Math.PI * 2);
+    ctx.fillStyle = bg;
     ctx.fill();
-    ctx.strokeStyle = 'rgba(255,170,90,0.35)';
-    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = 'rgba(255,176,84,0.3)';
+    ctx.lineWidth = 1.2;
     ctx.stroke();
 
     const a0 = Math.PI * 0.75;
     const a1 = Math.PI * 2.25;
+    ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.arc(0, 0, r - 4, a0, a1);
-    ctx.strokeStyle = 'rgba(120,130,150,0.35)';
-    ctx.lineWidth = 5;
+    ctx.strokeStyle = 'rgba(255,255,255,0.09)';
+    ctx.lineWidth = 6;
     ctx.stroke();
 
     const redStart = a0 + (a1 - a0) * (175 / MAX_KMH);
     ctx.beginPath();
     ctx.arc(0, 0, r - 4, redStart, a1);
-    ctx.strokeStyle = 'rgba(255,60,50,0.75)';
+    ctx.strokeStyle = 'rgba(255,60,50,0.55)';
     ctx.stroke();
 
     const frac = clamp(shownSpeed / MAX_KMH, 0, 1);
     ctx.beginPath();
     ctx.arc(0, 0, r - 4, a0, a0 + (a1 - a0) * frac);
     ctx.strokeStyle = '#ffb054';
-    ctx.lineWidth = 5;
+    ctx.lineWidth = 6;
     ctx.stroke();
 
-    ctx.fillStyle = 'rgba(220,225,235,0.8)';
-    ctx.font = '9px monospace';
+    ctx.lineCap = 'butt';
     ctx.textAlign = 'center';
-    for (let v = 0; v <= MAX_KMH; v += 20) {
+    for (let v = 0; v <= MAX_KMH; v += 10) {
       const a = a0 + (a1 - a0) * (v / MAX_KMH);
-      const inner = r - 14;
+      const major = v % 40 === 0;
+      const inner = r - (major ? 16 : 11);
       ctx.beginPath();
       ctx.moveTo(Math.cos(a) * (r - 8), Math.sin(a) * (r - 8));
       ctx.lineTo(Math.cos(a) * inner, Math.sin(a) * inner);
-      ctx.strokeStyle = v >= 175 ? 'rgba(255,90,70,0.9)' : 'rgba(200,205,215,0.6)';
-      ctx.lineWidth = v % 40 === 0 ? 2 : 1;
+      ctx.strokeStyle = v >= 175 ? 'rgba(255,90,70,0.85)' : 'rgba(210,216,228,0.55)';
+      ctx.lineWidth = major ? 1.8 : 0.8;
       ctx.stroke();
-      if (v % 40 === 0) ctx.fillText(String(v), Math.cos(a) * (r - 26), Math.sin(a) * (r - 26) + 3);
+      if (major) {
+        ctx.fillStyle = 'rgba(226,232,242,0.85)';
+        ctx.font = '600 9px "Segoe UI", Arial, sans-serif';
+        ctx.fillText(String(v), Math.cos(a) * (r - 26), Math.sin(a) * (r - 26) + 3);
+      }
     }
 
     const rpmA = a0 + (a1 - a0) * clamp(rpm, 0, 1);
     ctx.beginPath();
-    ctx.arc(0, 0, r + 3, a0, rpmA);
-    ctx.strokeStyle = rpm > 0.88 ? 'rgba(255,70,50,0.9)' : 'rgba(90,200,255,0.55)';
-    ctx.lineWidth = 2.5;
+    ctx.arc(0, 0, r - 13, a0, rpmA);
+    ctx.strokeStyle = rpm > 0.88 ? 'rgba(255,70,50,0.8)' : 'rgba(90,200,255,0.4)';
+    ctx.lineWidth = 2;
     ctx.stroke();
 
     const needleA = a0 + (a1 - a0) * frac;
+    ctx.save();
+    ctx.rotate(needleA);
     ctx.beginPath();
-    ctx.moveTo(Math.cos(needleA + Math.PI) * 10, Math.sin(needleA + Math.PI) * 10);
-    ctx.lineTo(Math.cos(needleA) * (r - 12), Math.sin(needleA) * (r - 12));
-    ctx.strokeStyle = '#ff6a3c';
-    ctx.lineWidth = 2.5;
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(0, 0, 5, 0, Math.PI * 2);
+    ctx.moveTo(-12, -2.2);
+    ctx.lineTo(r - 14, -0.7);
+    ctx.lineTo(r - 14, 0.7);
+    ctx.lineTo(-12, 2.2);
+    ctx.closePath();
     ctx.fillStyle = '#ff6a3c';
     ctx.fill();
+    ctx.restore();
+    ctx.beginPath();
+    ctx.arc(0, 0, 4.5, 0, Math.PI * 2);
+    ctx.fillStyle = '#1a1e28';
+    ctx.fill();
+    ctx.strokeStyle = '#ff6a3c';
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
 
-    ctx.fillStyle = '#f2f4f8';
-    ctx.font = 'bold 24px monospace';
-    ctx.fillText(String(Math.round(shownSpeed)), 0, 34);
-    ctx.font = '9px monospace';
-    ctx.fillStyle = 'rgba(220,225,235,0.65)';
-    ctx.fillText('km/h', 0, 46);
-    ctx.font = 'bold 13px monospace';
-    ctx.fillStyle = gear === 'R' ? '#ff8a6a' : '#8ad2ff';
-    ctx.fillText(gear, 0, 62);
+    ctx.fillStyle = '#f4f6fa';
+    ctx.font = 'italic 800 30px "Segoe UI", Arial, sans-serif';
+    ctx.fillText(String(Math.round(shownSpeed)), 0, 36);
+    ctx.font = '600 9px "Segoe UI", Arial, sans-serif';
+    ctx.fillStyle = 'rgba(220,225,235,0.6)';
+    ctx.fillText('km/h', 0, 48);
+    const gearColor = gear === 'R' ? '#ff8a6a' : '#8ad2ff';
+    ctx.beginPath();
+    ctx.roundRect(-13, 54, 26, 17, 4);
+    ctx.fillStyle = 'rgba(90,160,255,0.12)';
+    ctx.fill();
+    ctx.strokeStyle = gearColor;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.font = '700 11px "Segoe UI", Arial, sans-serif';
+    ctx.fillStyle = gearColor;
+    ctx.fillText(gear, 0, 66);
     ctx.restore();
   }
 

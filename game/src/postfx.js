@@ -107,7 +107,7 @@ export function createPostFX(renderer, scene, camera) {
   quadScene.add(quadMesh);
 
   const brightMat = new THREE.ShaderMaterial({
-    uniforms: { tDiffuse: { value: null }, uThreshold: { value: 1.45 }, uKnee: { value: 0.6 } },
+    uniforms: { tDiffuse: { value: null }, uThreshold: { value: 1.2 }, uKnee: { value: 0.5 } },
     vertexShader: QUAD_VS,
     fragmentShader: BRIGHT_FS,
     depthTest: false,
@@ -124,9 +124,9 @@ export function createPostFX(renderer, scene, camera) {
     uniforms: {
       tBase: { value: null },
       tBloom: { value: null },
-      uStrength: { value: 0.75 },
-      uExposure: { value: 1.08 },
-      uVignette: { value: 0.16 },
+      uStrength: { value: 0.34 },
+      uExposure: { value: 1.0 },
+      uVignette: { value: 0.12 },
       uTexel: { value: new THREE.Vector2() },
     },
     vertexShader: QUAD_VS,

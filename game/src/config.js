@@ -27,7 +27,7 @@ export const WORLD = {
   half: 620,
   coastX: -360,
   pierMinX: -545,
-  pierMinZ: 158,
+  pierMinZ: 260,
   pierMaxZ: 442,
   hillStartX: 380,
   hillFullX: 560,
@@ -56,11 +56,11 @@ export const CAR = {
 };
 
 export const CAMERA = {
-  distance: 7.6,
-  distanceSpeedGain: 0.055,
-  height: 3.1,
-  heightSpeedGain: 0.014,
-  lookAhead: 6.5,
+  distance: 6.6,
+  distanceSpeedGain: 0.05,
+  height: 2.4,
+  heightSpeedGain: 0.012,
+  lookAhead: 7.5,
   lag: 3.4,
   fovBase: 62,
   fovSpeedGain: 0.16,

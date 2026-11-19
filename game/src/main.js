@@ -104,11 +104,11 @@ function reflectionSources() {
   for (const v of cars) {
     const fx = Math.sin(v.heading);
     const fz = Math.cos(v.heading);
-    out.push({ x: v.x - fx * 2.3, z: v.z - fz * 2.3, y: 0.66, color: REF_COLORS.tail, intensity: v.braking ? 1.1 : 0.5, width: 0.9, stretch: 1 });
+    out.push({ x: v.x - fx * 2.3, z: v.z - fz * 2.3, y: 0.66, color: REF_COLORS.tail, intensity: v.braking ? 0.8 : 0.32, width: 0.8, stretch: 1 });
     const tcx = cam.x - v.x;
     const tcz = cam.z - v.z;
     if (fx * tcx + fz * tcz > 0.25 * Math.hypot(tcx, tcz)) {
-      out.push({ x: v.x + fx * 2.3, z: v.z + fz * 2.3, y: 0.52, color: REF_COLORS.head, intensity: 0.6, width: 0.9, stretch: 1.1 });
+      out.push({ x: v.x + fx * 2.3, z: v.z + fz * 2.3, y: 0.52, color: REF_COLORS.head, intensity: 0.4, width: 0.8, stretch: 1.1 });
     }
   }
   for (const u of police.units) {
@@ -117,12 +117,12 @@ function reflectionSources() {
     const rz = -Math.sin(v.heading);
     const ri = (u.mesh.sirenRedMat?.emissiveIntensity ?? 0) / 2.2;
     const bi = (u.mesh.sirenBlueMat?.emissiveIntensity ?? 0) / 2.2;
-    out.push({ x: v.x - rx * 0.33, z: v.z - rz * 0.33, y: 1.42, color: REF_COLORS.red, intensity: ri * 1.1, width: 0.7, stretch: 1.3 });
-    out.push({ x: v.x + rx * 0.33, z: v.z + rz * 0.33, y: 1.42, color: REF_COLORS.blue, intensity: bi * 1.1, width: 0.7, stretch: 1.3 });
+    out.push({ x: v.x - rx * 0.33, z: v.z - rz * 0.33, y: 1.42, color: REF_COLORS.red, intensity: ri * 0.8, width: 0.6, stretch: 1.3 });
+    out.push({ x: v.x + rx * 0.33, z: v.z + rz * 0.33, y: 1.42, color: REF_COLORS.blue, intensity: bi * 0.8, width: 0.6, stretch: 1.3 });
   }
   for (const l of world.lampLights) {
     if (Math.hypot(l.x - cam.x, l.z - cam.z) < 95) {
-      out.push({ x: l.x, z: l.z, y: l.y, color: REF_COLORS.lamp, intensity: 0.28, width: 0.6, stretch: 1.4 });
+      out.push({ x: l.x, z: l.z, y: l.y, color: REF_COLORS.lamp, intensity: 0.2, width: 0.5, stretch: 1.4 });
     }
   }
   return out;
@@ -235,6 +235,7 @@ function enterExit() {
     const rz = -Math.sin(activeVehicle.heading);
     player.reset({ x: activeVehicle.x + rx * 1.8, z: activeVehicle.z + rz * 1.8, heading: activeVehicle.heading });
     player.syncMesh();
+    player.playExit();
     mode = 'foot';
     chase.setOnFoot(true);
     police.setOnFoot(true);
@@ -243,8 +244,8 @@ function enterExit() {
     return;
   }
   if (Math.hypot(player.x - activeVehicle.x, player.z - activeVehicle.z) < 3.8) {
+    player.playEnter(activeVehicle);
     mode = 'car';
-    player.hide();
     chase.setOnFoot(false);
     police.setOnFoot(false);
     hud.setDriving(true, activeMesh.name);
@@ -260,8 +261,8 @@ function enterExit() {
   peds.panic(found.vehicle.x, found.vehicle.z, 10);
   activeVehicle = found.vehicle;
   activeMesh = found.mesh;
+  player.playEnter(found.vehicle);
   mode = 'car';
-  player.hide();
   chase.setOnFoot(false);
   police.setOnFoot(false);
   chase.initialized = false;
@@ -300,6 +301,7 @@ function handleActions() {
     activeMesh = carMesh;
     player.reset({ x: world.spawn.x + 2, z: world.spawn.z, heading: 0 });
     if (mode === 'foot') player.syncMesh();
+    else player.hide();
     chase.initialized = false;
     hud.setDriving(mode === 'car', activeMesh.name);
     hud.toast('CAR RESET', 1.6);
@@ -391,6 +393,7 @@ function minimapExtras() {
 function renderFrame(dt) {
   elapsed += dt;
   const t = target();
+  if (mode === 'car') player.updateEnter(dt);
   world.update(dt, elapsed, { x: t.x, y: t.groundY(), z: t.z });
   effects.update(dt, elapsed, { x: t.x, y: t.groundY(), z: t.z });
   if (state === 'start') {
@@ -456,19 +459,20 @@ const SHOT_POSES = {
   chase: {
     mode: 'car',
     mission: 'shipment',
-    spawn: { x: -330, z: -60, heading: 0 },
+    spawn: { x: -330, z: -20, heading: 0 },
     cruise: 31,
     wanted: 4,
+    rain: true,
     units: [
       { dx: -5.5, dz: -2, status: 'PURSUIT' },
       { dx: 5.5, dz: 0, status: 'PURSUIT' },
       { dx: 7.5, dz: 12, status: 'RAMMING' },
       { dx: 0, dz: 120, status: 'ROADBLOCK' },
     ],
-    heli: { dx: -12, dy: 19, dz: 62 },
+    heli: { dx: -6, dy: 21, dz: 58 },
     traffic: [
-      { road: 0, dir: 1, s: 55, speed: 12 },
-      { road: 0, dir: -1, s: 95, speed: 13 },
+      { road: 0, dir: 1, s: 165, speed: 12 },
+      { road: 0, dir: -1, s: 205, speed: 13 },
     ],
   },
   onfoot: {
@@ -478,10 +482,14 @@ const SHOT_POSES = {
     carPark: { x: -84.2, z: -158, heading: 0 },
     cruise: 0,
     wanted: 0,
+    rain: false,
     units: [],
     heli: null,
     peds: [
-      { road: 7, side: 1, s: -122, dir: -1 },
+      { road: 7, side: 1, s: -134, dir: -1 },
+      { road: 7, side: -1, s: -128, dir: 1 },
+      { road: 7, side: 1, s: -122, dir: 1 },
+      { road: 7, side: -1, s: -140, dir: -1 },
       { road: 7, side: 1, s: -112, dir: 1 },
       { road: 7, side: -1, s: -132, dir: 1 },
       { road: 7, side: -1, s: -120, dir: -1 },
@@ -501,12 +509,29 @@ const SHOT_POSES = {
       { road: 2, dir: 1, s: -105, speed: 9 },
     ],
   },
+  drive: {
+    mode: 'car',
+    mission: null,
+    spawn: { x: -86.5, z: -70, heading: 0 },
+    cruise: 15,
+    wanted: 0,
+    rain: false,
+    units: [],
+    heli: null,
+    traffic: [
+      { road: 7, dir: 1, s: -20, speed: 10 },
+      { road: 7, dir: 1, s: 15, speed: 11 },
+      { road: 7, dir: -1, s: -40, speed: 10 },
+      { road: 2, dir: 1, s: -60, speed: 9 },
+    ],
+  },
   pursuit: {
     mode: 'car',
     mission: 'chase',
     spawn: { x: 10, z: 80, heading: -Math.PI / 2 },
     cruise: 30,
     wanted: 5,
+    rain: true,
     units: [
       { dx: -4.5, dz: -2, status: 'PURSUIT' },
       { dx: 4.5, dz: 1, status: 'PURSUIT' },
@@ -519,10 +544,11 @@ const SHOT_POSES = {
   harbor: {
     mode: 'car',
     mission: 'harbor',
-    spawn: { x: -430, z: 284, heading: -Math.PI / 2 },
+    spawn: { x: -418, z: 284, heading: -Math.PI / 2 },
     cruise: 8,
     wanted: 3,
-    cam: { distance: 9.5, height: 4.6, fov: 70 },
+    rain: true,
+    cam: { distance: 8.5, height: 3.6, fov: 66 },
     units: [
       { dx: -5, dz: -1, status: 'PURSUIT' },
       { dx: 5, dz: 3, status: 'PURSUIT' },
@@ -557,6 +583,7 @@ function stagePose(pose, t) {
 function setupShot(name) {
   const pose = SHOT_POSES[name] ?? SHOT_POSES.chase;
   document.body.classList.add('shot');
+  effects.setRain(pose.rain !== false);
   state = 'play';
   mode = pose.mode;
   activeVehicle = car;
@@ -596,6 +623,8 @@ function setupShot(name) {
       traffic.update(STEP, player);
       peds.update(STEP, SHOT_TIME, { x: player.x, z: player.z, speed: player.speed });
     }
+    player.phase = 1.9;
+    player.syncMesh();
   }
   const t = target();
   if (pose.peds) {

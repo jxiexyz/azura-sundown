@@ -21,7 +21,10 @@ export function createMinimap(world) {
     };
 
     ctx.clearRect(0, 0, SIZE, SIZE);
-    ctx.fillStyle = '#0d1119';
+    const land = ctx.createLinearGradient(0, 0, SIZE, SIZE);
+    land.addColorStop(0, '#161c28');
+    land.addColorStop(1, '#10151f');
+    ctx.fillStyle = land;
     ctx.fillRect(0, 0, SIZE, SIZE);
 
     const water = [[-2400, -2400], [WORLD.coastX, -2400], [WORLD.coastX, 2400], [-2400, 2400]];
@@ -32,8 +35,14 @@ export function createMinimap(world) {
       else ctx.lineTo(sx, sy);
     });
     ctx.closePath();
-    ctx.fillStyle = '#12293e';
+    const sea = ctx.createLinearGradient(0, 0, SIZE, 0);
+    sea.addColorStop(0, '#0e2a40');
+    sea.addColorStop(1, '#123a54');
+    ctx.fillStyle = sea;
     ctx.fill();
+    ctx.strokeStyle = 'rgba(120,190,220,0.35)';
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
 
     const pier = [
       [WORLD.pierMinX, WORLD.pierMinZ],
@@ -50,8 +59,11 @@ export function createMinimap(world) {
     ctx.closePath();
     ctx.fillStyle = '#232a34';
     ctx.fill();
+    ctx.strokeStyle = 'rgba(150,160,175,0.3)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
 
-    ctx.fillStyle = '#272e3c';
+    ctx.fillStyle = '#242b39';
     for (const b of world.colliders) {
       const [x0, y0] = tx(b.minX, b.minZ);
       const [x1, y1] = tx(b.maxX, b.maxZ);
@@ -63,6 +75,7 @@ export function createMinimap(world) {
       ctx.fillRect(minX, minY, Math.max(w, 1.2), Math.max(h, 1.2));
     }
 
+    ctx.lineCap = 'round';
     for (const road of world.roads) {
       const x1 = road.axis === 'z' ? road.at : road.from;
       const z1 = road.axis === 'z' ? road.from : road.at;
@@ -73,10 +86,33 @@ export function createMinimap(world) {
       ctx.beginPath();
       ctx.moveTo(sx1, sy1);
       ctx.lineTo(sx2, sy2);
-      ctx.strokeStyle = road.w >= 24 ? '#5a6375' : '#454d5e';
-      ctx.lineWidth = Math.max(2, road.w * SCALE);
-      ctx.lineCap = 'round';
+      ctx.strokeStyle = '#0b0e15';
+      ctx.lineWidth = Math.max(3, road.w * SCALE) + 2;
       ctx.stroke();
+    }
+    for (const road of world.roads) {
+      const x1 = road.axis === 'z' ? road.at : road.from;
+      const z1 = road.axis === 'z' ? road.from : road.at;
+      const x2 = road.axis === 'z' ? road.at : road.to;
+      const z2 = road.axis === 'z' ? road.to : road.at;
+      const [sx1, sy1] = tx(x1, z1);
+      const [sx2, sy2] = tx(x2, z2);
+      ctx.beginPath();
+      ctx.moveTo(sx1, sy1);
+      ctx.lineTo(sx2, sy2);
+      ctx.strokeStyle = road.w >= 24 ? '#6a7488' : '#4a5265';
+      ctx.lineWidth = Math.max(2, road.w * SCALE);
+      ctx.stroke();
+      if (road.w >= 24) {
+        ctx.beginPath();
+        ctx.moveTo(sx1, sy1);
+        ctx.lineTo(sx2, sy2);
+        ctx.strokeStyle = 'rgba(216,180,90,0.55)';
+        ctx.lineWidth = 0.8;
+        ctx.setLineDash([3, 3]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
     }
 
     if (extras.search) {
@@ -98,11 +134,11 @@ export function createMinimap(world) {
         const [sx, sy] = tx(p.x, p.z);
         if (sx < -6 || sy < -6 || sx > SIZE + 6 || sy > SIZE + 6) continue;
         ctx.beginPath();
-        ctx.arc(sx, sy, 3.4, 0, Math.PI * 2);
+        ctx.arc(sx, sy, 3.2, 0, Math.PI * 2);
         ctx.fillStyle = Math.sin(t * 9) > 0 ? '#ff4444' : '#4d8dff';
         ctx.fill();
-        ctx.strokeStyle = '#0a0e18';
-        ctx.lineWidth = 1;
+        ctx.strokeStyle = '#f2f6ff';
+        ctx.lineWidth = 0.8;
         ctx.stroke();
       }
     }
@@ -112,7 +148,7 @@ export function createMinimap(world) {
         const [sx, sy] = tx(h.x, h.z);
         if (sx < -6 || sy < -6 || sx > SIZE + 6 || sy > SIZE + 6) continue;
         ctx.beginPath();
-        ctx.arc(sx, sy, 3.2, 0, Math.PI * 2);
+        ctx.arc(sx, sy, 3, 0, Math.PI * 2);
         ctx.fillStyle = '#ff3a7a';
         ctx.fill();
         ctx.strokeStyle = '#160810';
@@ -127,19 +163,23 @@ export function createMinimap(world) {
         const cx = Math.max(10, Math.min(SIZE - 10, mx));
         const cy = Math.max(10, Math.min(SIZE - 10, my));
         ctx.beginPath();
-        ctx.arc(cx, cy, 5.5, 0, Math.PI * 2);
-        ctx.strokeStyle = 'rgba(255,176,84,0.75)';
-        ctx.lineWidth = 1.2;
+        ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255,176,84,0.8)';
+        ctx.lineWidth = 1.4;
         ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(cx, cy, 1.6, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,176,84,0.8)';
+        ctx.fill();
       }
     }
 
     if (extras.heli) {
       const [sx, sy] = tx(extras.heli.x, extras.heli.z);
-      ctx.beginPath();
-      ctx.arc(sx, sy, 5, 0, Math.PI * 2);
       ctx.strokeStyle = '#ffd9a0';
       ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.arc(sx, sy, 4.4, 0, Math.PI * 2);
       ctx.stroke();
       ctx.beginPath();
       ctx.moveTo(sx - 6.5, sy);
@@ -153,7 +193,7 @@ export function createMinimap(world) {
       const [wx, wy] = tx(waypoint.x, waypoint.z);
       const cx = Math.max(12, Math.min(SIZE - 12, wx));
       const cy = Math.max(12, Math.min(SIZE - 12, wy));
-      const pulse = 4 + Math.sin(t * 5) * 1.4;
+      const pulse = 4 + Math.sin(t * 5) * 1.2;
       ctx.beginPath();
       ctx.moveTo(cx, cy - pulse - 2);
       ctx.lineTo(cx + pulse + 2, cy);
@@ -167,24 +207,35 @@ export function createMinimap(world) {
       ctx.stroke();
     }
 
+    ctx.save();
+    ctx.shadowColor = 'rgba(90,160,255,0.9)';
+    ctx.shadowBlur = 6;
     ctx.beginPath();
-    ctx.moveTo(half, half - 7);
-    ctx.lineTo(half + 5, half + 6);
-    ctx.lineTo(half, half + 3);
-    ctx.lineTo(half - 5, half + 6);
+    ctx.moveTo(half, half - 7.5);
+    ctx.lineTo(half + 5.5, half + 6.5);
+    ctx.lineTo(half, half + 3.5);
+    ctx.lineTo(half - 5.5, half + 6.5);
     ctx.closePath();
-    ctx.fillStyle = '#eaf2ff';
+    ctx.fillStyle = '#f2f7ff';
     ctx.fill();
+    ctx.restore();
     ctx.strokeStyle = '#1e5fd8';
-    ctx.lineWidth = 1.4;
+    ctx.lineWidth = 1.2;
     ctx.stroke();
 
-    const nx = half + sa * (half - 10);
-    const ny = half + ca * (half - 10);
-    ctx.fillStyle = 'rgba(255,176,84,0.9)';
-    ctx.font = 'bold 10px monospace';
+    const nx = half + sa * (half - 11);
+    const ny = half + ca * (half - 11);
+    ctx.beginPath();
+    ctx.arc(nx, ny - 3, 7, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(10,14,22,0.8)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,176,84,0.5)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(255,200,130,0.95)';
+    ctx.font = 'bold 9px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('N', nx, ny + 3);
+    ctx.fillText('N', nx, ny);
   }
 
   return { draw };

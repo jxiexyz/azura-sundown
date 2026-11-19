@@ -60,17 +60,18 @@ export class ChaseCamera {
     const rx = Math.cos(yaw);
     const rz = -Math.sin(yaw);
     const speed = car.speed;
-    const baseDist = aiming ? 2.6 : this.onFoot ? 5.2 : (this.distOverride ?? CAMERA.distance);
-    const baseHeight = aiming ? 1.9 : this.onFoot ? 2.3 : (this.heightOverride ?? CAMERA.height);
-    const rightOff = aiming ? 0.5 : 0;
-    const lookAhead = aiming ? 12 : this.onFoot ? 3.2 : CAMERA.lookAhead;
+    const baseDist = aiming ? 2.6 : this.onFoot ? 4.4 : (this.distOverride ?? CAMERA.distance);
+    const baseHeight = aiming ? 1.9 : this.onFoot ? 2.0 : (this.heightOverride ?? CAMERA.height);
+    const rightOff = aiming ? 0.5 : this.onFoot ? 0.32 : 0;
+    const lookAhead = aiming ? 12 : this.onFoot ? 2.8 : CAMERA.lookAhead;
     const dist = baseDist + speed * (this.onFoot ? 0.02 : CAMERA.distanceSpeedGain);
     const height = baseHeight + speed * (this.onFoot ? 0.005 : CAMERA.heightSpeedGain);
     const carY = car.groundY();
     const fov = (aiming ? 50 : this.onFoot ? 58 : (this.fovOverride ?? CAMERA.fovBase)) + speed * (this.onFoot ? 0.05 : CAMERA.fovSpeedGain);
+    const turnOff = this.onFoot ? 0 : clamp(-(car.steer ?? 0) * speed * 0.055, -1.5, 1.5);
 
-    let desiredX = car.x - fx * dist + rx * rightOff;
-    let desiredZ = car.z - fz * dist + rz * rightOff;
+    let desiredX = car.x - fx * dist + rx * (rightOff + turnOff);
+    let desiredZ = car.z - fz * dist + rz * (rightOff + turnOff);
     let desiredY = carY + height;
 
     for (const b of colliders) {
@@ -98,7 +99,7 @@ export class ChaseCamera {
     const lookX = car.x + fx * lookAhead;
     const lookZ = car.z + fz * lookAhead;
     this.look.x = damp(this.look.x, lookX, 8, dt);
-    this.look.y = damp(this.look.y, carY + (aiming ? 1.35 + this.aimPitch * 9 : this.onFoot ? 1.35 : 1.15), 8, dt);
+    this.look.y = damp(this.look.y, carY + (aiming ? 1.35 + this.aimPitch * 9 : this.onFoot ? 1.45 : 0.95), 8, dt);
     this.look.z = damp(this.look.z, lookZ, 8, dt);
 
     this.shake = Math.max(0, this.shake - dt * 2.2);

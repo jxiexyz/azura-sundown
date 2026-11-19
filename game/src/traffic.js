@@ -2,7 +2,7 @@ import { createVehicleMesh, Vehicle } from './vehicle.js';
 import { CAR } from './config.js';
 import { mulberry32, clamp, damp } from './utils.js';
 
-const PAINTS = [0xc8ccd4, 0x8a2a2a, 0x2a4a7a, 0x3a3f46, 0xd0a030, 0x6a7a6a, 0xe0dcd0, 0x4a3a5a];
+const PAINTS = [0xc8ccd4, 0x9a3a3a, 0x3a5a8a, 0x6a7078, 0xd0a030, 0x7a8a7a, 0xe0dcd0, 0x5a4a6a];
 const ACTIVE_RANGE = 300;
 const MOVER_COUNT = 12;
 
@@ -35,11 +35,15 @@ export function createTraffic(scene, world, seed = 1) {
     const dir = rand() < 0.5 ? 1 : -1;
     const s = road.from + 15 + rand() * (road.to - road.from - 30);
     const pose = lanePose(road, dir, s);
+    const roll = rand();
+    const body = roll < 0.45 ? 'sedan' : roll < 0.7 ? 'suv' : roll < 0.85 ? 'van' : 'sedan';
+    const taxi = roll >= 0.85;
     const mesh = createVehicleMesh({
-      paint: PAINTS[Math.floor(rand() * PAINTS.length)],
-      body: rand() < 0.3 ? 'suv' : 'sedan',
+      paint: taxi ? 0xe8b820 : PAINTS[Math.floor(rand() * PAINTS.length)],
+      body,
+      taxi,
       spotlights: false,
-      name: 'Civilian',
+      name: taxi ? 'Azura Cab' : body === 'van' ? 'Panel Van' : body === 'suv' ? 'Civilian SUV' : 'Civilian',
     });
     scene.add(mesh.root);
     const vehicle = new Vehicle(mesh, pose);
@@ -66,15 +70,26 @@ export function createTraffic(scene, world, seed = 1) {
     { road: world.roads[3], side: 1, s: 210 },
     { road: world.roads[8], side: -1, s: 240 },
     { road: world.roads[5], side: 1, s: 60 },
+    { abs: { x: 180, z: -50, heading: Math.PI / 2 } },
+    { abs: { x: 180, z: -28, heading: Math.PI / 2 } },
+    { abs: { x: 180, z: 16, heading: Math.PI / 2 } },
+    { abs: { x: 220, z: -39, heading: -Math.PI / 2 } },
+    { abs: { x: 220, z: -6, heading: -Math.PI / 2 } },
+    { abs: { x: 220, z: 27, heading: -Math.PI / 2 } },
+    { abs: { x: 240, z: -17, heading: Math.PI / 2 } },
+    { abs: { x: 240, z: 38, heading: Math.PI / 2 } },
   ];
   for (const spot of parkSpots) {
-    const off = spot.side * (spot.road.w / 2 - 1.25);
-    const pose = spot.road.axis === 'z'
-      ? { x: spot.road.at + off, z: spot.s, heading: spot.side > 0 ? 0 : Math.PI }
-      : { x: spot.s, z: spot.road.at + off, heading: spot.side > 0 ? Math.PI / 2 : -Math.PI / 2 };
+    const pose = spot.abs ?? (() => {
+      const off = spot.side * (spot.road.w / 2 - 1.25);
+      return spot.road.axis === 'z'
+        ? { x: spot.road.at + off, z: spot.s, heading: spot.side > 0 ? 0 : Math.PI }
+        : { x: spot.s, z: spot.road.at + off, heading: spot.side > 0 ? Math.PI / 2 : -Math.PI / 2 };
+    })();
+    const roll = rand();
     const mesh = createVehicleMesh({
       paint: PAINTS[Math.floor(rand() * PAINTS.length)],
-      body: rand() < 0.35 ? 'suv' : 'sedan',
+      body: roll < 0.35 ? 'suv' : roll < 0.5 ? 'van' : 'sedan',
       spotlights: false,
       lightsOn: false,
       name: 'Parked',
