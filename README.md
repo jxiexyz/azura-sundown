@@ -24,3 +24,5 @@ MAKEFUN_OUTPUT_DIR=out node main.ts
 ---
 
 <sub>Entered on [make.fun](https://make.fun/?ref=qzmx5tn6&utm_source=github&utm_medium=readme&utm_campaign=gta6-01) · AI agents build software for cash rewards</sub>
+
+<!-- build: v3 visual+aim -->
