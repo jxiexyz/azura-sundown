@@ -1,6 +1,6 @@
 import THREE from 'three';
 import { PLAYER_NAME } from './config.js';
-import { clamp, damp } from './utils.js';
+import { clamp, damp, radialTexture } from './utils.js';
 import { heightAt } from './world.js';
 
 const WALK_SPEED = 3.2;
@@ -23,37 +23,75 @@ export function createPlayerMesh() {
   const skin = new THREE.MeshStandardMaterial({ color: 0xc99a72, roughness: 0.75 });
   const jeans = new THREE.MeshStandardMaterial({ color: 0x2c3448, roughness: 0.85 });
   const hair = new THREE.MeshStandardMaterial({ color: 0x1c1410, roughness: 0.9 });
+  const shoe = new THREE.MeshStandardMaterial({ color: 0x14161a, roughness: 0.7 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x101216, roughness: 0.6 });
 
-  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.58, 0.26), jacket);
-  torso.position.y = 1.12;
+  const hips = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.2, 0.24), jeans);
+  hips.position.y = 0.9;
+  hips.castShadow = true;
+  root.add(hips);
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.54, 0.25), jacket);
+  torso.position.y = 1.16;
   torso.castShadow = true;
   root.add(torso);
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.155, 10, 8), skin);
-  head.position.y = 1.56;
+  const collar = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.08, 0.2), jacket);
+  collar.position.y = 1.44;
+  root.add(collar);
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.065, 0.1, 8), skin);
+  neck.position.y = 1.46;
+  root.add(neck);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.15, 12, 10), skin);
+  head.position.y = 1.6;
+  head.scale.set(0.94, 1.05, 0.98);
   head.castShadow = true;
   root.add(head);
-  const cap = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 6, 0, Math.PI * 2, 0, Math.PI * 0.55), hair);
-  cap.position.y = 1.585;
+  const cap = new THREE.Mesh(new THREE.SphereGeometry(0.158, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.58), hair);
+  cap.position.y = 1.615;
+  cap.scale.set(0.96, 1.02, 1.0);
   root.add(cap);
+  const fringe = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.05, 0.06), hair);
+  fringe.position.set(0, 1.665, 0.115);
+  root.add(fringe);
+  const eyeGeo = new THREE.BoxGeometry(0.032, 0.022, 0.02);
+  for (const side of [-1, 1]) {
+    const eye = new THREE.Mesh(eyeGeo, dark);
+    eye.position.set(side * 0.055, 1.605, 0.132);
+    root.add(eye);
+  }
+  const nose = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.035, 0.03), skin);
+  nose.position.set(0, 1.575, 0.145);
+  root.add(nose);
 
-  const legGeo = limbGeometry(0.16, 0.82, 0.18);
-  const armGeo = limbGeometry(0.11, 0.56, 0.13);
+  const legGeo = limbGeometry(0.15, 0.8, 0.17);
+  const armGeo = limbGeometry(0.1, 0.54, 0.12);
   const legL = new THREE.Mesh(legGeo, jeans);
-  legL.position.set(-0.11, 0.84, 0);
+  legL.position.set(-0.1, 0.86, 0);
   const legR = new THREE.Mesh(legGeo, jeans);
-  legR.position.set(0.11, 0.84, 0);
+  legR.position.set(0.1, 0.86, 0);
   const armL = new THREE.Mesh(armGeo, jacket);
-  armL.position.set(-0.28, 1.38, 0);
+  armL.position.set(-0.26, 1.4, 0);
   const armR = new THREE.Mesh(armGeo, jacket);
-  armR.position.set(0.28, 1.38, 0);
+  armR.position.set(0.26, 1.4, 0);
+  const shoeGeo = new THREE.BoxGeometry(0.16, 0.09, 0.26);
+  const handGeo = new THREE.SphereGeometry(0.055, 8, 6);
+  for (const leg of [legL, legR]) {
+    const s = new THREE.Mesh(shoeGeo, shoe);
+    s.position.set(0, -0.78, 0.05);
+    leg.add(s);
+  }
+  for (const arm of [armL, armR]) {
+    const h = new THREE.Mesh(handGeo, skin);
+    h.position.set(0, -0.55, 0);
+    arm.add(h);
+  }
   for (const m of [legL, legR, armL, armR]) {
     m.castShadow = true;
     root.add(m);
   }
 
-  const shadowGeo = new THREE.CircleGeometry(0.42, 10);
+  const shadowGeo = new THREE.PlaneGeometry(1.1, 1.1);
   shadowGeo.rotateX(-Math.PI / 2);
-  const shadow = new THREE.Mesh(shadowGeo, new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.3, depthWrite: false }));
+  const shadow = new THREE.Mesh(shadowGeo, new THREE.MeshBasicMaterial({ map: radialTexture(64, 2.6), color: 0x000000, transparent: true, opacity: 0.4, depthWrite: false }));
   shadow.position.y = 0.045;
   root.add(shadow);
 
@@ -141,7 +179,7 @@ export class Player {
     m.legR.rotation.x = -swing;
     m.armL.rotation.x = -swing * 0.8;
     m.armR.rotation.x = swing * 0.8;
-    m.torso.position.y = 1.12 + (this.moving ? Math.abs(Math.sin(this.phase)) * 0.035 : 0);
+    m.torso.position.y = 1.16 + (this.moving ? Math.abs(Math.sin(this.phase)) * 0.035 : 0);
     m.root.visible = true;
   }
 

@@ -7,6 +7,8 @@ import { createVehicleMesh, Vehicle } from './vehicle.js';
 import { createPlayerMesh, Player } from './player.js';
 import { ChaseCamera } from './camera.js';
 import { createEffects, createSpeedOverlay } from './effects.js';
+import { createPostFX } from './postfx.js';
+import { createReflections } from './reflections.js';
 import { createHud } from './hud.js';
 import { createMinimap } from './minimap.js';
 import { createMissions } from './missions.js';
@@ -29,7 +31,7 @@ const seedParam = Number.parseInt(params.get('seed') ?? '', 10);
 const seed = Number.isInteger(seedParam) ? seedParam : 7;
 
 const canvas = document.getElementById('scene');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
@@ -60,6 +62,9 @@ const player = new Player(playerMesh, { x: world.spawn.x + 2, z: world.spawn.z, 
 player.hide();
 
 const chase = new ChaseCamera(camera);
+const postfx = createPostFX(renderer, scene, camera);
+postfx.setSize(window.innerWidth, window.innerHeight);
+const reflections = createReflections(scene);
 const effects = createEffects(scene);
 const speedOverlay = createSpeedOverlay(document.getElementById('vignette'));
 const hud = createHud();
@@ -78,8 +83,50 @@ let last = performance.now();
 let lastImpact = 0;
 let heatGuard = 0;
 let panelAcc = 0;
+let sprayTick = 0;
 let shotFrozen = false;
 let lastDistrict = districtAt(car.x, car.z);
+
+const REF_COLORS = {
+  tail: new THREE.Color(0xff2211),
+  head: new THREE.Color(0xffd9a0),
+  red: new THREE.Color(0xff2222),
+  blue: new THREE.Color(0x2255ff),
+  lamp: new THREE.Color(0xffb46a),
+};
+
+function reflectionSources() {
+  const out = [];
+  const cam = camera.position;
+  const cars = [activeVehicle];
+  for (const u of police.units) cars.push(u.vehicle);
+  for (const m of traffic.movers) if (!m.stolen && m.speed > 1) cars.push(m.vehicle);
+  for (const v of cars) {
+    const fx = Math.sin(v.heading);
+    const fz = Math.cos(v.heading);
+    out.push({ x: v.x - fx * 2.3, z: v.z - fz * 2.3, y: 0.66, color: REF_COLORS.tail, intensity: v.braking ? 1.1 : 0.5, width: 0.9, stretch: 1 });
+    const tcx = cam.x - v.x;
+    const tcz = cam.z - v.z;
+    if (fx * tcx + fz * tcz > 0.25 * Math.hypot(tcx, tcz)) {
+      out.push({ x: v.x + fx * 2.3, z: v.z + fz * 2.3, y: 0.52, color: REF_COLORS.head, intensity: 0.6, width: 0.9, stretch: 1.1 });
+    }
+  }
+  for (const u of police.units) {
+    const v = u.vehicle;
+    const rx = Math.cos(v.heading);
+    const rz = -Math.sin(v.heading);
+    const ri = (u.mesh.sirenRedMat?.emissiveIntensity ?? 0) / 2.2;
+    const bi = (u.mesh.sirenBlueMat?.emissiveIntensity ?? 0) / 2.2;
+    out.push({ x: v.x - rx * 0.33, z: v.z - rz * 0.33, y: 1.42, color: REF_COLORS.red, intensity: ri * 1.1, width: 0.7, stretch: 1.3 });
+    out.push({ x: v.x + rx * 0.33, z: v.z + rz * 0.33, y: 1.42, color: REF_COLORS.blue, intensity: bi * 1.1, width: 0.7, stretch: 1.3 });
+  }
+  for (const l of world.lampLights) {
+    if (Math.hypot(l.x - cam.x, l.z - cam.z) < 95) {
+      out.push({ x: l.x, z: l.z, y: l.y, color: REF_COLORS.lamp, intensity: 0.28, width: 0.6, stretch: 1.4 });
+    }
+  }
+  return out;
+}
 
 const deps = {
   scene, camera, chase, hud, world, car, player, effects, seed, isShot: () => isShot,
@@ -109,6 +156,7 @@ deps.onQuality = (v) => {
   renderer.setPixelRatio(v === 'low' ? 1 : Math.min(window.devicePixelRatio, 1.75));
   world.sun.shadow.mapSize.set(v === 'low' ? 1024 : 2048, v === 'low' ? 1024 : 2048);
   world.sun.shadow.needsUpdate = true;
+  postfx.setSize(window.innerWidth, window.innerHeight);
 };
 deps.onResume = () => setPaused(false);
 deps.onQuit = () => { state = 'start'; audio.suspend(); };
@@ -208,6 +256,7 @@ function enterExit() {
     return;
   }
   found.entry.stolen = true;
+  found.mesh.lightsOn = true;
   peds.panic(found.vehicle.x, found.vehicle.z, 10);
   activeVehicle = found.vehicle;
   activeMesh = found.mesh;
@@ -230,6 +279,11 @@ window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
+  postfx.setSize(window.innerWidth, window.innerHeight);
+  if (shotFrozen) {
+    reflections.update(camera.position, reflectionSources());
+    postfx.render();
+  }
 });
 
 function handleActions() {
@@ -265,6 +319,12 @@ function stepGame(dt) {
   traffic.update(dt, t);
   peds.update(dt, elapsed, { x: t.x, z: t.z, speed: t.speed });
   police.update(dt, elapsed, t);
+  sprayTick = (sprayTick + 1) % 3;
+  if (sprayTick === 0) {
+    if (mode === 'car') effects.spray(activeVehicle);
+    for (const u of police.units) if (!u.roadblock) effects.spray(u.vehicle);
+    for (const m of traffic.movers) if (!m.stolen && Math.hypot(m.vehicle.x - t.x, m.vehicle.z - t.z) < 90) effects.spray(m.vehicle);
+  }
   combat.update(dt, input, t);
   missions.update(dt, t);
   save.autosaveTick(dt);
@@ -332,7 +392,7 @@ function renderFrame(dt) {
   elapsed += dt;
   const t = target();
   world.update(dt, elapsed, { x: t.x, y: t.groundY(), z: t.z });
-  effects.update(dt);
+  effects.update(dt, elapsed, { x: t.x, y: t.groundY(), z: t.z });
   if (state === 'start') {
     const a = elapsed * 0.12;
     camera.position.set(car.x + Math.sin(a) * 15, car.groundY() + 5.5, car.z + Math.cos(a) * 15);
@@ -362,13 +422,14 @@ function renderFrame(dt) {
     mode,
   });
   hud.update(dt);
-  renderer.render(scene, camera);
+  reflections.update(camera.position, reflectionSources());
+  postfx.render();
 }
 
 function frame(now) {
   requestAnimationFrame(frame);
   if (shotFrozen) {
-    renderer.render(scene, camera);
+    postfx.present();
     return;
   }
   const dt = Math.min((now - last) / 1000, MAX_FRAME);
@@ -404,7 +465,11 @@ const SHOT_POSES = {
       { dx: 7.5, dz: 12, status: 'RAMMING' },
       { dx: 0, dz: 120, status: 'ROADBLOCK' },
     ],
-    heli: { dx: -16, dy: 24, dz: 95 },
+    heli: { dx: -12, dy: 19, dz: 62 },
+    traffic: [
+      { road: 0, dir: 1, s: 55, speed: 12 },
+      { road: 0, dir: -1, s: 95, speed: 13 },
+    ],
   },
   onfoot: {
     mode: 'foot',
@@ -420,17 +485,26 @@ const SHOT_POSES = {
       { road: 7, side: 1, s: -112, dir: 1 },
       { road: 7, side: -1, s: -132, dir: 1 },
       { road: 7, side: -1, s: -120, dir: -1 },
+      { road: 7, side: 1, s: -100, dir: -1 },
+      { road: 7, side: -1, s: -106, dir: 1 },
       { road: 2, side: 1, s: -72, dir: 1 },
+      { road: 2, side: -1, s: -95, dir: -1 },
+      { road: 2, side: 1, s: -58, dir: 1 },
+      { road: 7, side: 1, s: -128, dir: -1 },
+      { road: 7, side: -1, s: -134, dir: 1 },
+      { road: 7, side: 1, s: -140, dir: 1 },
     ],
     traffic: [
       { road: 7, dir: -1, s: -98, speed: 9 },
       { road: 2, dir: -1, s: -60, speed: 8 },
+      { road: 7, dir: 1, s: -170, speed: 10 },
+      { road: 2, dir: 1, s: -105, speed: 9 },
     ],
   },
   pursuit: {
     mode: 'car',
     mission: 'chase',
-    spawn: { x: 10, z: -120, heading: -Math.PI / 2 },
+    spawn: { x: 10, z: 80, heading: -Math.PI / 2 },
     cruise: 30,
     wanted: 5,
     units: [
@@ -440,7 +514,7 @@ const SHOT_POSES = {
       { dx: -4, dz: 36, status: 'INTERCEPT' },
       { dx: 0, dz: 100, status: 'ROADBLOCK' },
     ],
-    heli: { dx: 12, dy: 26, dz: 92 },
+    heli: { dx: 10, dy: 20, dz: 60 },
   },
   harbor: {
     mode: 'car',
@@ -506,6 +580,11 @@ function setupShot(name) {
       car.step(STEP, cruiseInput, world.colliders);
       traffic.update(STEP, car);
       peds.update(STEP, SHOT_TIME, { x: car.x, z: car.z, speed: car.speed });
+      if (i % 3 === 0) {
+        effects.spray(car);
+        for (const m of traffic.movers) if (!m.stolen) effects.spray(m.vehicle);
+      }
+      effects.update(STEP, i * STEP, { x: car.x, y: car.groundY(), z: car.z });
     }
   } else {
     car.reset(pose.carPark);
@@ -561,8 +640,12 @@ function setupShot(name) {
   }
   if (pose.mission) missions.start(pose.mission);
   stagePose(pose, t);
+  for (let i = 0; i < 26; i++) {
+    if (i % 3 === 0) for (const u of police.units) if (!u.roadblock) effects.spray(u.vehicle);
+    effects.update(STEP, SHOT_TIME, { x: t.x, y: t.groundY(), z: t.z });
+  }
   elapsed = SHOT_TIME;
-  effects.update(STEP);
+  effects.update(STEP, SHOT_TIME, { x: t.x, y: t.groundY(), z: t.z });
   world.update(0, SHOT_TIME, { x: t.x, y: t.groundY(), z: t.z });
   chase.setOnFoot(mode === 'foot');
   chase.distOverride = pose.cam?.distance ?? null;
@@ -581,7 +664,8 @@ function setupShot(name) {
   speedOverlay.update(mode === 'car' ? car.speed : 0, 0);
   hud.clearToast();
   shotFrozen = true;
-  renderer.render(scene, camera);
+  reflections.update(camera.position, reflectionSources());
+  postfx.render();
   window.__shotReady = true;
 }
 

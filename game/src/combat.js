@@ -30,6 +30,14 @@ function buildPistol() {
   const sight = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.025, 0.03), metal);
   sight.position.set(0, 0.07, 0.23);
   g.add(sight);
+  const guard = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.07, 0.12), metal);
+  guard.position.set(0, -0.08, 0.02);
+  g.add(guard);
+  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.06, 8), metal);
+  barrel.rotation.x = Math.PI / 2;
+  barrel.position.set(0, 0.01, 0.28);
+  g.add(barrel);
+  g.scale.setScalar(1.25);
   return g;
 }
 

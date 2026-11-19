@@ -76,6 +76,7 @@ export function createTraffic(scene, world, seed = 1) {
       paint: PAINTS[Math.floor(rand() * PAINTS.length)],
       body: rand() < 0.35 ? 'suv' : 'sedan',
       spotlights: false,
+      lightsOn: false,
       name: 'Parked',
     });
     scene.add(mesh.root);

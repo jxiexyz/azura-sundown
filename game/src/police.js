@@ -52,6 +52,12 @@ export function createHelicopterMesh() {
   rotor.add(mainA, mainB);
   rotor.position.y = 1.35;
   root.add(rotor);
+  const blurGeo = new THREE.CircleGeometry(4.3, 24);
+  blurGeo.rotateX(-Math.PI / 2);
+  const blurMat = new THREE.MeshBasicMaterial({ color: 0x2a2f38, transparent: true, opacity: 0.22, depthWrite: false, side: THREE.DoubleSide });
+  const blurDisc = new THREE.Mesh(blurGeo, blurMat);
+  blurDisc.position.y = 1.37;
+  root.add(blurDisc);
   const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 0.6, 6), dark);
   mast.position.y = 1.1;
   root.add(mast);
@@ -71,10 +77,11 @@ export function createHelicopterMesh() {
   const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.16, 6, 5), beaconMat);
   beacon.position.set(0, -0.9, -2.2);
   root.add(beacon);
-  const coneMat = new THREE.MeshBasicMaterial({ color: 0xfff0c0, transparent: true, opacity: 0.07, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+  const coneMat = new THREE.MeshBasicMaterial({ color: 0xfff0c0, transparent: true, opacity: 0.06, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
   const cone = new THREE.Mesh(new THREE.ConeGeometry(7, 30, 12, 1, true), coneMat);
   cone.position.y = -16;
   root.add(cone);
+  root.scale.setScalar(1.18);
 
   return { root, rotor, tailRotor, beaconMat, coneMat };
 }
@@ -93,7 +100,7 @@ export function createPolice(scene, world, seed = 1) {
   const lastKnown = { x: 0, z: 0 };
 
   function spawnUnit(spawn, status) {
-    const mesh = createVehicleMesh({ police: true, paint: 0xf2f4f8, spotlights: false, name: 'ABPD Cruiser' });
+    const mesh = createVehicleMesh({ police: true, paint: 0xdde1e8, spotlights: false, name: 'ABPD Cruiser' });
     scene.add(mesh.root);
     const vehicle = new Vehicle(mesh, spawn);
     vehicle.syncMesh(0);
@@ -207,12 +214,12 @@ export function createPolice(scene, world, seed = 1) {
     for (const u of units) {
       const s = Math.sin(t * 9 + u.phase);
       const red = s > 0;
-      if (u.mesh.sirenRedMat) u.mesh.sirenRedMat.emissiveIntensity = red ? 5 : 0.35;
-      if (u.mesh.sirenBlueMat) u.mesh.sirenBlueMat.emissiveIntensity = red ? 0.35 : 5;
-      if (u.mesh.sirenGlowRedMat) u.mesh.sirenGlowRedMat.opacity = red ? 0.17 : 0.02;
-      if (u.mesh.sirenGlowBlueMat) u.mesh.sirenGlowBlueMat.opacity = red ? 0.02 : 0.17;
+      if (u.mesh.sirenRedMat) u.mesh.sirenRedMat.emissiveIntensity = red ? 2.2 : 0.25;
+      if (u.mesh.sirenBlueMat) u.mesh.sirenBlueMat.emissiveIntensity = red ? 0.25 : 2.2;
+      if (u.mesh.sirenGlowRedMat) u.mesh.sirenGlowRedMat.opacity = red ? 0.1 : 0.015;
+      if (u.mesh.sirenGlowBlueMat) u.mesh.sirenGlowBlueMat.opacity = red ? 0.015 : 0.1;
     }
-    if (heli) heli.beaconMat.emissiveIntensity = Math.sin(t * 6) > 0 ? 3.5 : 0.4;
+    if (heli) heli.beaconMat.emissiveIntensity = Math.sin(t * 6) > 0 ? 4.5 : 0.5;
   }
 
   function update(dt, t, target) {
