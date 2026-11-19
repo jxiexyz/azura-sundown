@@ -1,61 +1,71 @@
-// Every tuning number and colour in one place. The playfield is a fixed 1280x720 logical area;
-// the renderer scales it to the window, so no rule below depends on the screen size.
+export const GAME_TITLE = 'AZURA SUNDOWN';
+export const CITY_NAME = 'Port Azura';
+export const POLICE_NAME = 'Azura Bay Police Department';
+export const POLICE_SHORT = 'ABPD';
+export const PLAYER_CAR_NAME = 'Vantara S9';
+export const START_CASH = 2500;
 
-export const FIELD = { width: 1280, height: 720, groundY: 664 };
+export const DISTRICTS = [
+  { id: 'harborline', name: 'HARBORLINE', label: 'Harborline Docks' },
+  { id: 'crescent', name: 'CRESCENT STRIP', label: 'Crescent Strip' },
+  { id: 'meridian', name: 'MERIDIAN CORE', label: 'Meridian Core' },
+  { id: 'palms', name: 'OLD PALMS', label: 'Old Palms' },
+  { id: 'ridge', name: 'VISTA RIDGE', label: 'Vista Ridge' },
+];
 
-/** The simulation's fixed step, in seconds: 60 updates a second whatever the display's rate. */
+export function districtAt(x, z) {
+  if (x < -352 && z > 150 && z < 450) return DISTRICTS[0];
+  if (x < -252) return DISTRICTS[1];
+  if (x > 372) return DISTRICTS[4];
+  if (z > 96 && x < 280) return DISTRICTS[3];
+  if (z > 150 && x < -196) return DISTRICTS[0];
+  return DISTRICTS[2];
+}
+
+export const WORLD = {
+  half: 620,
+  coastX: -360,
+  pierMinX: -545,
+  pierMinZ: 158,
+  pierMaxZ: 442,
+  hillStartX: 380,
+  hillFullX: 560,
+  hillHeight: 42,
+};
+
+export const CAR = {
+  accel: 16.5,
+  brake: 32,
+  reverseAccel: 9,
+  maxSpeed: 54,
+  maxReverse: 12,
+  drag: 0.0035,
+  rolling: 0.6,
+  grip: 8.0,
+  gripHandbrake: 1.5,
+  gripSlide: 3.2,
+  steerMax: 0.62,
+  steerSpeedFalloff: 0.05,
+  steerLerp: 7,
+  wheelbase: 2.9,
+  maxYawRate: 1.9,
+  radius: 1.45,
+  wheelRadius: 0.34,
+  restitution: 0.28,
+};
+
+export const CAMERA = {
+  distance: 7.6,
+  distanceSpeedGain: 0.055,
+  height: 3.1,
+  heightSpeedGain: 0.014,
+  lookAhead: 6.5,
+  lag: 3.4,
+  fovBase: 62,
+  fovSpeedGain: 0.16,
+  shakeSpeedStart: 30,
+};
+
 export const STEP = 1 / 60;
-
-export const PLAYER = {
-  width: 72,
-  height: 24,
-  speed: 560,
-  invulnerable: 1.5,
-};
-
-export const LIVES = 3;
-
-export const BLOCK = {
-  minWidth: 40,
-  maxWidth: 110,
-  height: 36,
-  speed: 240,
-  speedPerLevel: 30,
-  speedJitter: 90,
-  interval: 0.55,
-  intervalScale: 0.88,
-  minInterval: 0.14,
-  dodgePoints: 1,
-};
-
-export const COIN = {
-  size: 24,
-  speed: 190,
-  speedPerLevel: 14,
-  interval: 1.4,
-  intervalJitter: 0.8,
-  points: 10,
-};
-
-/** Seconds of play per level, and the last level: speeds and spawn rates stop growing there. */
-export const LEVEL = { seconds: 12, max: 12 };
-
-/** How many falling things can exist at once; the pool is allocated once, at boot. */
-export const POOL_SIZE = 64;
-
-export const PALETTE = {
-  backdrop: '#11141b',
-  sky: '#1b1f2a',
-  ground: '#2a3040',
-  player: '#4fc3f7',
-  block: '#e5534b',
-  coin: '#f2c94c',
-  panel: '#252b38',
-  text: '#eef1f5',
-  muted: '#8b93a3',
-};
-
-export const FONT = 'system-ui, -apple-system, "Segoe UI", sans-serif';
-
-/** Where the best score is kept between visits (this browser only). */
-export const BEST_KEY = 'block-dodger.best';
+export const MAX_FRAME = 0.25;
+export const SAVE_KEY = 'azura-sundown-save-v1';

@@ -3,17 +3,79 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Block Dodger</title>
-<style>
-  html, body { margin: 0; height: 100%; overflow: hidden; background: #11141b; }
-  #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
-  /* Read aloud, never shown: the status line screen readers announce. */
-  #status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-</style>
+<title>AZURA SUNDOWN</title>
+<link rel="stylesheet" href="./style.css">
+<script type="importmap">
+{ "imports": { "three": "./src/three-shim.js" } }
+</script>
 </head>
 <body>
-<canvas id="game" aria-label="Block Dodger: move the paddle left and right to dodge falling blocks and catch coins"></canvas>
-<p id="status" role="status" aria-live="polite"></p>
+<canvas id="scene"></canvas>
+<div id="vignette"></div>
+
+<div id="hud" class="hidden">
+  <div id="hud-top-left">
+    <div id="logo">AZURA<span>SUNDOWN</span></div>
+    <div id="mission-panel" class="panel">
+      <div id="mission-title">THE SHIPMENT</div>
+      <div id="mission-objective">Drive to the Harborline gate marker</div>
+      <div id="mission-status">IN PROGRESS</div>
+    </div>
+  </div>
+
+  <div id="hud-top-right">
+    <div id="cash">$2,500</div>
+    <div id="wanted" aria-label="wanted level">
+      <span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span>
+    </div>
+    <div id="district">CRESCENT STRIP</div>
+  </div>
+
+  <div id="police-panel" class="panel hidden">
+    <div id="police-header">ABPD DISPATCH</div>
+    <div id="police-units"></div>
+  </div>
+
+  <div id="hud-bottom-left">
+    <canvas id="minimap" width="200" height="200"></canvas>
+    <div id="minimap-frame"></div>
+  </div>
+
+  <div id="speedo" class="hidden">
+    <canvas id="speedo-canvas" width="190" height="190"></canvas>
+    <div id="car-name">Vantara S9</div>
+  </div>
+
+  <div id="toast"></div>
+</div>
+
+<div id="start-screen">
+  <div id="start-inner">
+    <div id="start-kicker">PORT AZURA · AN ORIGINAL OPEN-WORLD CRIME STORY</div>
+    <h1 id="game-title">AZURA SUNDOWN</h1>
+    <div id="start-sub">A sunset coastal city. A blue Vantara S9. One shipment that changes everything.</div>
+    <div id="controls-grid">
+      <div><kbd>W</kbd><kbd>↑</kbd> accelerate</div>
+      <div><kbd>S</kbd><kbd>↓</kbd> brake / reverse</div>
+      <div><kbd>A</kbd><kbd>D</kbd><kbd>←</kbd><kbd>→</kbd> steer</div>
+      <div><kbd>SPACE</kbd> handbrake / drift</div>
+      <div><kbd>R</kbd> reset car</div>
+      <div><kbd>ESC</kbd> pause</div>
+    </div>
+    <button id="start-button">ENTER THE CITY</button>
+    <div id="start-foot">Pass 1 build — drivable world · full story, traffic and police pursuit arrive next</div>
+  </div>
+</div>
+
+<div id="pause-screen" class="hidden">
+  <div id="pause-inner">
+    <h2>PAUSED</h2>
+    <p>Port Azura waits for you.</p>
+    <button id="resume-button">RESUME</button>
+    <div id="pause-controls">WASD / arrows drive · SPACE handbrake · R reset car</div>
+  </div>
+</div>
+
 <script type="module" src="./src/main.js"></script>
 </body>
 </html>

@@ -1,53 +1,55 @@
-// Keyboard and pointer input. Held keys give a steering direction; one-shot presses (start or
-// restart, pause) are queued as bit flags and taken once by the loop, so a press between two
-// frames is never lost and never counted twice.
+const KEYMAP = {
+  KeyW: 'up',
+  ArrowUp: 'up',
+  KeyS: 'down',
+  ArrowDown: 'down',
+  KeyA: 'left',
+  ArrowLeft: 'left',
+  KeyD: 'right',
+  ArrowRight: 'right',
+  Space: 'handbrake',
+  ShiftLeft: 'sprint',
+  ShiftRight: 'sprint',
+  KeyR: 'reset',
+  Escape: 'pause',
+  Enter: 'confirm',
+  KeyH: 'horn',
+};
 
-export const ACTION_CONFIRM = 1;
-export const ACTION_PAUSE = 2;
+export function createInput() {
+  const held = new Set();
+  const pressed = new Set();
+  const prevent = new Set(['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
 
-const LEFT = new Set(['ArrowLeft', 'KeyA']);
-const RIGHT = new Set(['ArrowRight', 'KeyD']);
-const CONFIRM = new Set(['Space', 'Enter']);
-const PAUSE = new Set(['KeyP', 'Escape']);
-
-export function createInput(target) {
-  let left = false;
-  let right = false;
-  let actions = 0;
-
-  window.addEventListener('keydown', (event) => {
-    if (LEFT.has(event.code)) left = true;
-    else if (RIGHT.has(event.code)) right = true;
-    else if (CONFIRM.has(event.code)) {
-      if (!event.repeat) actions |= ACTION_CONFIRM;
-    } else if (PAUSE.has(event.code)) {
-      if (!event.repeat) actions |= ACTION_PAUSE;
-    } else return;
-    event.preventDefault();
+  window.addEventListener('keydown', (e) => {
+    const action = KEYMAP[e.code];
+    if (!action) return;
+    if (prevent.has(e.code)) e.preventDefault();
+    if (!e.repeat) pressed.add(action);
+    held.add(action);
   });
-  window.addEventListener('keyup', (event) => {
-    if (LEFT.has(event.code)) left = false;
-    else if (RIGHT.has(event.code)) right = false;
+  window.addEventListener('keyup', (e) => {
+    const action = KEYMAP[e.code];
+    if (action) held.delete(action);
   });
-  // A key released while the tab is hidden never sends keyup: let go of everything on blur.
-  window.addEventListener('blur', () => {
-    left = false;
-    right = false;
-  });
-  target.addEventListener('pointerdown', () => {
-    actions |= ACTION_CONFIRM;
-  });
+  window.addEventListener('blur', () => held.clear());
 
   return {
-    /** -1 for left, 1 for right, 0 for neither or both. */
-    direction() {
-      return (right ? 1 : 0) - (left ? 1 : 0);
+    down: (action) => held.has(action),
+    takePressed(action) {
+      const had = pressed.has(action);
+      pressed.delete(action);
+      return had;
     },
-    /** The one-shot presses since the last call, as ACTION_* flags. */
-    takeActions() {
-      const taken = actions;
-      actions = 0;
-      return taken;
+    endFrame() {
+      pressed.clear();
     },
+    throttle() {
+      return (held.has('up') ? 1 : 0) - (held.has('down') ? 1 : 0);
+    },
+    steer() {
+      return (held.has('left') ? 1 : 0) - (held.has('right') ? 1 : 0);
+    },
+    handbrake: () => held.has('handbrake'),
   };
 }

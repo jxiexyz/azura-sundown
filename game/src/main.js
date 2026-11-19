@@ -1,134 +1,196 @@
-// Boot and the one loop: input is read every frame, the world advances in fixed 1/60 s steps
-// (several in a slow frame, none in a fast one), and the renderer paints what is there. The game
-// moves between four screens: title, play, paused and game over.
-//
-// ?seed=N fixes the falling pattern. ?shot=start|play|end (with &seed=N) stages that scene
-// instead of running the loop, paints it twice and sets window.__shotReady for a screenshot.
-import { BEST_KEY, LIVES, STEP } from './config.js';
-import { createRandom } from './random.js';
-import { createWorld, EVENT_HIT, EVENT_OVER } from './world.js';
-import { ACTION_CONFIRM, ACTION_PAUSE, createInput } from './input.js';
-import { createRenderer, SCREEN_OVER, SCREEN_PAUSED, SCREEN_PLAY, SCREEN_TITLE } from './render.js';
-import { stageShot } from './shots.js';
+import THREE from 'three';
+import { STEP, MAX_FRAME, districtAt } from './config.js';
+import { createInput } from './input.js';
+import { createWorld } from './world.js';
+import { createVehicleMesh, Vehicle } from './vehicle.js';
+import { ChaseCamera } from './camera.js';
+import { createEffects, createSpeedOverlay } from './effects.js';
+import { createHud } from './hud.js';
+import { createMinimap } from './minimap.js';
+import { createObjective } from './objective.js';
 
-/** The longest frame the loop catches up on; a longer stall (a hidden tab) is dropped, not replayed. */
-const MAX_FRAME = 0.25;
+window.addEventListener('error', (e) => {
+  window.__bootError = String(e.message);
+  document.title = 'BOOT ERROR: ' + e.message;
+});
 
 const params = new URLSearchParams(window.location.search);
 const shot = params.get('shot');
 const seedParam = Number.parseInt(params.get('seed') ?? '', 10);
-const seed = Number.isInteger(seedParam) ? seedParam : Math.floor(Math.random() * 4294967296);
+const seed = Number.isInteger(seedParam) ? seedParam : 7;
 
-const canvas = document.getElementById('game');
-const status = document.getElementById('status');
-const world = createWorld(createRandom(seed));
-const renderer = createRenderer(canvas);
+const canvas = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.08;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
 
-function readBest() {
-  try {
-    return Number.parseInt(window.localStorage.getItem(BEST_KEY) ?? '0', 10) || 0;
-  } catch {
-    return 0;
-  }
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(62, window.innerWidth / window.innerHeight, 0.5, 2600);
+
+const world = createWorld(scene, seed);
+
+const pmrem = new THREE.PMREMGenerator(renderer);
+const envScene = new THREE.Scene();
+envScene.add(new THREE.Mesh(new THREE.SphereGeometry(100, 24, 12), world.skyMat));
+scene.environment = pmrem.fromScene(envScene, 0.06, 0.1, 300).texture;
+pmrem.dispose();
+
+const carMesh = createVehicleMesh();
+scene.add(carMesh.root);
+const car = new Vehicle(carMesh, world.spawn);
+car.syncMesh(0);
+
+const chase = new ChaseCamera(camera);
+const effects = createEffects(scene);
+const speedOverlay = createSpeedOverlay(document.getElementById('vignette'));
+const hud = createHud();
+const minimap = createMinimap(world);
+const objective = createObjective(hud);
+const input = createInput();
+
+let state = 'start';
+let elapsed = 0;
+let accumulator = 0;
+let last = performance.now();
+let lastImpact = 0;
+let lastDistrict = districtAt(car.x, car.z);
+let frames = 0;
+
+hud.setDistrict(lastDistrict.name);
+hud.setDriving(true, carMesh.name);
+hud.showScreen('start');
+
+function startGame() {
+  state = 'drive';
+  hud.showScreen(null);
+  hud.toast('WELCOME TO PORT AZURA', 3);
 }
 
-function saveBest(value) {
-  try {
-    window.localStorage.setItem(BEST_KEY, String(value));
-  } catch {
-    // Storage can be off (private windows): the best score then lasts this visit only.
-  }
-}
-
-function runShot(name) {
-  const scene = stageShot(name, world);
-  let painted = 0;
-  function paint() {
-    renderer.draw(world.state, scene.screen, scene.best);
-    painted += 1;
-    if (painted < 2) requestAnimationFrame(paint);
-    else window.__shotReady = true;
-  }
-  requestAnimationFrame(paint);
-}
-
-function runGame() {
-  const input = createInput(canvas);
-  let screen = SCREEN_TITLE;
-  let best = readBest();
-  let accumulator = 0;
-  let last = performance.now();
-
-  // Screen readers (and anyone watching the page's text) hear the screen changes and each hit.
-  function announce(message) {
-    status.textContent = message;
-  }
-
-  function startGame() {
-    world.reset();
+function setPaused(paused) {
+  if (paused && state === 'drive') {
+    state = 'pause';
+    hud.showScreen('pause');
+  } else if (!paused && state === 'pause') {
+    state = 'drive';
+    hud.showScreen(null);
+    last = performance.now();
     accumulator = 0;
-    screen = SCREEN_PLAY;
-    announce(`Playing. ${LIVES} lives.`);
   }
-
-  function endGame() {
-    screen = SCREEN_OVER;
-    if (world.state.score > best) {
-      best = world.state.score;
-      saveBest(best);
-    }
-    announce(`Game over. Score ${world.state.score}. Best ${best}.`);
-  }
-
-  function handleActions() {
-    const actions = input.takeActions();
-    if (actions & ACTION_CONFIRM && (screen === SCREEN_TITLE || screen === SCREEN_OVER)) startGame();
-    else if (actions & ACTION_PAUSE && screen === SCREEN_PLAY) {
-      screen = SCREEN_PAUSED;
-      announce('Paused.');
-    } else if (actions & (ACTION_PAUSE | ACTION_CONFIRM) && screen === SCREEN_PAUSED) {
-      screen = SCREEN_PLAY;
-      announce('Playing.');
-    }
-  }
-
-  function step() {
-    if (screen === SCREEN_TITLE) {
-      world.step(STEP, 0, true);
-      return;
-    }
-    const events = world.step(STEP, input.direction(), false);
-    if (events & EVENT_OVER) endGame();
-    else if (events & EVENT_HIT) announce(world.state.lives === 1 ? 'Hit. 1 life left.' : `Hit. ${world.state.lives} lives left.`);
-  }
-
-  function frame(now) {
-    requestAnimationFrame(frame);
-    accumulator += Math.min((now - last) / 1000, MAX_FRAME);
-    last = now;
-    handleActions();
-    if (screen === SCREEN_TITLE || screen === SCREEN_PLAY) {
-      while (accumulator >= STEP && (screen === SCREEN_TITLE || screen === SCREEN_PLAY)) {
-        step();
-        accumulator -= STEP;
-      }
-    } else {
-      accumulator = 0;
-    }
-    renderer.draw(world.state, screen, best);
-  }
-
-  // Leaving the tab pauses a running game rather than letting blocks fall unseen.
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden && screen === SCREEN_PLAY) {
-      screen = SCREEN_PAUSED;
-      announce('Paused.');
-    }
-  });
-
-  announce('Block Dodger. Press Space or click to start.');
-  requestAnimationFrame(frame);
 }
 
-if (shot) runShot(shot);
-else runGame();
+document.getElementById('start-button').addEventListener('click', startGame);
+document.getElementById('resume-button').addEventListener('click', () => setPaused(false));
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) setPaused(true);
+});
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+function handleActions() {
+  if (input.takePressed('confirm') && state === 'start') startGame();
+  if (input.takePressed('pause')) {
+    if (state === 'drive') setPaused(true);
+    else if (state === 'pause') setPaused(false);
+  }
+  if (input.takePressed('reset') && state !== 'start') {
+    car.reset(world.spawn);
+    chase.initialized = false;
+    hud.toast('CAR RESET', 1.6);
+  }
+}
+
+function stepGame(dt) {
+  car.step(dt, input, world.colliders);
+  objective.update(car);
+  if (car.impact > lastImpact + 0.04) {
+    effects.sparks(car.x, car.groundY(), car.z, 16, 5 + car.impact * 9);
+    chase.addShake(car.impact * 0.55);
+  }
+  lastImpact = car.impact;
+  const d = districtAt(car.x, car.z);
+  if (d.id !== lastDistrict.id) {
+    lastDistrict = d;
+    hud.setDistrict(d.name);
+    hud.toast(d.label.toUpperCase(), 2.2);
+  }
+}
+
+function renderFrame(dt) {
+  elapsed += dt;
+  world.update(dt, elapsed, { x: car.x, y: car.groundY(), z: car.z });
+  effects.update(dt);
+  if (state === 'start') {
+    const a = elapsed * 0.12;
+    camera.position.set(car.x + Math.sin(a) * 15, car.groundY() + 5.5, car.z + Math.cos(a) * 15);
+    camera.lookAt(car.x, car.groundY() + 1, car.z);
+  } else {
+    chase.update(dt, car, world.colliders);
+  }
+  hud.drawSpeedo(Math.abs(car.forwardSpeed) * 3.6, car.rpm, car.gear);
+  minimap.draw(car, objective.current(), elapsed);
+  speedOverlay.update(car.speed, car.impact);
+  hud.update(dt);
+  renderer.render(scene, camera);
+}
+
+function frame(now) {
+  requestAnimationFrame(frame);
+  const dt = Math.min((now - last) / 1000, MAX_FRAME);
+  last = now;
+  handleActions();
+  if (state === 'drive') {
+    accumulator += dt;
+    while (accumulator >= STEP) {
+      stepGame(STEP);
+      accumulator -= STEP;
+    }
+  } else {
+    accumulator = 0;
+  }
+  renderFrame(state === 'pause' ? 0 : dt);
+  input.endFrame();
+  frames += 1;
+  if (shot && frames === 4) window.__shotReady = true;
+}
+
+const SHOT_SPOTS = {
+  drive: { x: -330, z: -60, heading: 0 },
+  harbor: { x: -452, z: 280, heading: -Math.PI / 2 },
+  city: { x: 30, z: -300, heading: 0 },
+  ridge: { x: 470, z: 40, heading: Math.PI },
+};
+
+if (shot) {
+  const spot = SHOT_SPOTS[shot] ?? SHOT_SPOTS.drive;
+  car.reset(spot);
+  car.syncMesh(0);
+  state = 'drive';
+  hud.showScreen(null);
+}
+
+window.__game = {
+  car,
+  world,
+  hud,
+  getState: () => state,
+  start: startGame,
+  teleport(x, z, heading) {
+    car.x = x;
+    car.z = z;
+    car.heading = heading;
+    car.vx = 0;
+    car.vz = 0;
+    chase.initialized = false;
+    car.syncMesh(0);
+  },
+};
+
+requestAnimationFrame(frame);
